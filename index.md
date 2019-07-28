@@ -122,7 +122,7 @@ Single page version of <https://csharpcodingguidelines.com/> .
 - [About this document](#about-this-document)
   - [Useful links](#useful-links)
   - [What is this](#what-is-this)
-- [What is different compared to Aviva / CSharpGuidelines](#what-is-different-compared-to-aviva--csharpguidelines)
+  - [What is different compared to Aviva / CSharpGuidelines](#what-is-different-compared-to-aviva--csharpguidelines)
   - [Why would you use this document](#why-would-you-use-this-document)
   - [Basic principles](#basic-principles)
   - [How do you get started](#how-do-you-get-started)
@@ -1332,7 +1332,7 @@ The rationale and source of several of the new guidelines in this document, writ
 This document attempts to provide guidelines (or coding standards if you like) for coding in C# 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.1, 7.2 or 7.3 that are both useful and pragmatic.
 These guidelines are based on: <https://csharpcodingguidelines.com/> by Dennis Doomen of Aviva solutions. Most of the rules are kept as is, but some are updated.
 
-## What is different compared to Aviva / CSharpGuidelines
+### What is different compared to Aviva / CSharpGuidelines
 
 Some rules have been changed to match personal preferences. I renamed the rule code to be prefixed with DG instead of AV to avoid confusion.
 
