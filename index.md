@@ -23,7 +23,7 @@ Single page version of <https://csharpcodingguidelines.com/> .
   - [AV1115: A property, method or local function should do only one thing](#av1115-a-property-method-or-local-function-should-do-only-one-thing)
   - [AV1125: Don't expose stateful objects through static members](#av1125-dont-expose-stateful-objects-through-static-members)
   - [AV1130: Return an `IEnumerable<T>` or `ICollection<T>` instead of a concrete collection class](#av1130-return-an-ienumerablet-or-icollectiont-instead-of-a-concrete-collection-class)
-  - [AV1135: Properties, arguments and return values representing strings or collections should never be `null`](#av1135-properties-arguments-and-return-values-representing-strings-or-collections-should-never-be-null)
+  - [AV1135: Properties, arguments and return values representing strings, collections or tasks should never be `null`](#av1135-properties-arguments-and-return-values-representing-strings-collections-or-tasks-should-never-be-null)
   - [AV1137: Define parameters as specific as possible](#av1137-define-parameters-as-specific-as-possible)
   - [AV1140: Consider using domain-specific value types rather than primitives](#av1140-consider-using-domain-specific-value-types-rather-than-primitives)
 - [Miscellaneous Design Guidelines](#miscellaneous-design-guidelines)
@@ -61,7 +61,8 @@ Single page version of <https://csharpcodingguidelines.com/> .
   - [AV1545: Don't use an `if`-`else` construct instead of a simple (conditional) assignment](#av1545-dont-use-an-if-else-construct-instead-of-a-simple-conditional-assignment)
   - [AV1547: Encapsulate complex expressions in a property, method or local function](#av1547-encapsulate-complex-expressions-in-a-property-method-or-local-function)
   - [AV1551: Call the more overloaded method from other overloads](#av1551-call-the-more-overloaded-method-from-other-overloads)
-  - [AV1553: Only use optional arguments to replace overloads](#av1553-only-use-optional-arguments-to-replace-overloads)
+  - [AV1553: Only use optional parameters to replace overloads](#av1553-only-use-optional-parameters-to-replace-overloads)
+  - [AV1554: Do not use optional parameters in interface methods or their concrete implementations](#av1554-do-not-use-optional-parameters-in-interface-methods-or-their-concrete-implementations)
   - [AV1555: Avoid using named arguments](#av1555-avoid-using-named-arguments)
   - [AV1561: Don't declare signatures with more than 3 parameters](#av1561-dont-declare-signatures-with-more-than-3-parameters)
   - [AV1562: Don't use `ref` or `out` parameters](#av1562-dont-use-ref-or-out-parameters)
@@ -107,7 +108,7 @@ Single page version of <https://csharpcodingguidelines.com/> .
   - [AV2235: Favor `async`/`await` over `Task` continuations](#av2235-favor-asyncawait-over-task-continuations)
 - [Documentation Guidelines](#documentation-guidelines)
   - [AV2301: Write comments and documentation in US English](#av2301-write-comments-and-documentation-in-us-english)
-  - [DG2305: Document all `public`, `protected` and `internal` types and members](#dg2305-document-all-public-protected-and-internal-types-and-members)
+  - [AV2305: Document all `public`, `protected` and `internal` types and members](#av2305-document-all-public-protected-and-internal-types-and-members)
   - [AV2306: Write XML documentation with other developers in mind](#av2306-write-xml-documentation-with-other-developers-in-mind)
   - [AV2307: Write MSDN-style documentation](#av2307-write-msdn-style-documentation)
   - [AV2310: Avoid inline comments](#av2310-avoid-inline-comments)
@@ -117,7 +118,7 @@ Single page version of <https://csharpcodingguidelines.com/> .
   - [DG2400: Use a common layout](#dg2400-use-a-common-layout)
   - [DG2402: Order namespaces in alphabetic order](#dg2402-order-namespaces-in-alphabetic-order)
   - [DG2406: Place members in a well-defined order](#dg2406-place-members-in-a-well-defined-order)
-  - [DG2407: Be reluctant with `#region`](#dg2407-be-reluctant-with-region)
+  - [AV2407: Do not use `#region`](#av2407-do-not-use-region)
   - [AV2410: Use expression-bodied members appropriately](#av2410-use-expression-bodied-members-appropriately)
 - [About this document](#about-this-document)
   - [Useful links](#useful-links)
@@ -145,7 +146,7 @@ A class or interface should have a single purpose within the system it functions
 
 ### AV1001: Only create a constructor that returns a useful object
 
-There should be no need to set additional properties before the object can be used for whatever purpose it was designed. However, if your constructor needs more than three parameters (which violates AV1561), your class might have too much responsibility (and violates AV1000).
+There should be no need to set additional properties before the object can be used for whatever purpose it was designed. However, if your constructor needs more than three parameters (which violates [AV1561](#av1561-dont-declare-signatures-with-more-than-3-parameters)), your class might have too much responsibility (and violates [AV1000](#av1000-a-class-or-interface-should-have-a-single-purpose)).
 
 ### AV1003: An interface should be small and focused
 
@@ -232,7 +233,7 @@ This means that two classes know about each other's public members or rely on ea
 
 ### AV1025: Classes should have state and behavior
 
-In general, if you find a lot of data-only classes in your code base, you probably also have a few (static) classes with a lot of behavior (see AV1008). Use the principles of object-orientation explained in this section and move the logic close to the data it applies to.
+In general, if you find a lot of data-only classes in your code base, you probably also have a few (static) classes with a lot of behavior (see [AV1008](#av1008-avoid-static-classes)). Use the principles of object-orientation explained in this section and move the logic close to the data it applies to.
 
 **Exception:** The only exceptions to this rule are classes that are used to transfer data over a communication channel, also called [Data Transfer Objects](http://martinfowler.com/eaaCatalog/dataTransferObject.html), or a class that wraps several parameters of a method.
 
@@ -279,11 +280,11 @@ This violation is often seen in domain models and introduces all kinds of condit
 
 ### AV1115: A property, method or local function should do only one thing
 
-Similarly to rule AV1000, a method body should have a single responsibility.
+Similarly to rule [AV1000](#av1000-a-class-or-interface-should-have-a-single-purpose), a method body should have a single responsibility.
 
 ### AV1125: Don't expose stateful objects through static members
 
-A stateful object is an object that contains many properties and lots of behavior behind it. If you expose such an object through a static property or method of some other object, it will be very difficult to refactor or unit test a class that relies on such a stateful object. In general, introducing a construction like that is a great example of violating many of the guidelines of this chapter.
+A stateful object is an object that contains many properties and lots of behavior behind it. If you expose such an object through a static property or method of some other object, it will be very difficult to refactor or unit test a class that relies on such a stateful object. In general, introducing a construct like that is a great example of violating many of the guidelines of this chapter.
 
 A classic example of this is the `HttpContext.Current` property, part of ASP.NET. Many see the `HttpContext` class as a source of a lot of ugly code. In fact, the testing guideline [Isolate the Ugly Stuff](http://codebetter.com/jeremymiller/2005/10/21/haacked-on-tdd-and-jeremys-first-rule-of-tdd/) often refers to this class.
 
@@ -295,9 +296,9 @@ You generally don't want callers to be able to change an internal collection, so
 
 **Exception:** Immutable collections such as `ImmutableArray<T>`, `ImmutableList<T>` and `ImmutableDictionary<TKey, TValue>` prevent modifications from the outside and are thus allowed.
 
-### AV1135: Properties, arguments and return values representing strings or collections should never be `null`
+### AV1135: Properties, arguments and return values representing strings, collections or tasks should never be `null`
 
-Returning `null` can be unexpected by the caller. Always return an empty collection or an empty string instead of a `null` reference. This also prevents cluttering your code base with additional checks for `null`, or even worse, `string.IsNullOrEmpty()`.
+Returning `null` can be unexpected by the caller. Always return an empty collection or an empty string instead of a `null` reference. When your member returns `Task` or `Task<T>`, return `Task.CompletedTask` or `Task.FromResult()`. This also prevents cluttering your code base with additional checks for `null`, or even worse, `string.IsNullOrEmpty()`.
 
 ### AV1137: Define parameters as specific as possible
 
@@ -659,7 +660,7 @@ For example:
 
 ### AV1540: Be reluctant with multiple `return` statements
 
-One entry, one exit is a sound principle and keeps control flow readable. However, if the method body is very small and complies with guideline AV1500 then multiple return statements may actually improve readability over some central boolean flag that is updated at various points.
+One entry, one exit is a sound principle and keeps control flow readable. However, if the method body is very small and complies with guideline [AV1500](#av1500-methods-should-not-exceed-7-statements) then multiple return statements may actually improve readability over some central boolean flag that is updated at various points.
 
 ### AV1545: Don't use an `if`-`else` construct instead of a simple (conditional) assignment
 
@@ -787,9 +788,9 @@ The class `MyString` provides three overloads for the `IndexOf` method, but two 
 
 **Important:** If you also want to allow derived classes to override these methods, define the most complete overload as a non-private `virtual` method that is called by all overloads.
 
-### AV1553: Only use optional arguments to replace overloads
+### AV1553: Only use optional parameters to replace overloads
 
-The only valid reason for using C# 4.0's optional arguments is to replace the example from rule AV1551 with a single method like:
+The only valid reason for using C# 4.0's optional parameters is to replace the example from rule [AV1551](#av1551-call-the-more-overloaded-method-from-other-overloads) with a single method like:
 
     public virtual int IndexOf(string phrase, int startIndex = 0, int count = -1)
     {
@@ -797,11 +798,23 @@ The only valid reason for using C# 4.0's optional arguments is to replace the ex
         return someText.IndexOf(phrase, startIndex, length);
     }
 
-If the optional parameter is a reference type then it can only have a default value of `null`. But since strings, lists and collections should never be `null` according to rule AV1135, you must use overloaded methods instead.
+Since strings, lists and collections should never be `null` according to rule [AV1135](#av1135-properties-arguments-and-return-values-representing-strings-collections-or-tasks-should-never-be-null), if you have an optional parameter of these types with default value `null` then you must use overloaded methods instead.
 
-**Note:** The default values of the optional parameters are stored at the caller side. As such, changing the default value without recompiling the calling code will not apply the new default value.
+Strings, unlike other reference types, can have non-null default values. So an optional string parameter may be used to replace overloads with the condition of having a non-null default value.
 
-**Note:** When an interface method defines an optional parameter, its default value is discarded during overload resolution unless you call the concrete class through the interface reference. See [this post by Eric Lippert](http://blogs.msdn.com/b/ericlippert/archive/2011/05/09/optional-argument-corner-cases-part-one.aspx) for more details.
+Regardless of optional parameters' types, following caveats always apply:
+
+1) The default values of the optional parameters are stored at the caller side. As such, changing the default argument without recompiling the calling code will not apply the new default value. Unless your method is private or internal, this aspect should be carefully considered before choosing optional parameters over method overloads.
+
+2) If optional parameters cause the method to follow and/or exit from alternative paths, overloaded methods are probably a better fit for your case.
+
+### AV1554: Do not use optional parameters in interface methods or their concrete implementations
+
+When an interface method defines an optional parameter, its default value is discarded during overload resolution unless you call the concrete class through the interface reference.
+
+When a concrete implementation of an interface method sets a default argument for a parameter, the default value is discarded during overload resolution if you call the concrete class through the interface reference.
+
+See [this series by Eric Lippert](http://blogs.msdn.com/b/ericlippert/archive/2011/05/09/optional-argument-corner-cases-part-one.aspx) for more details.
 
 ### AV1555: Avoid using named arguments
 
@@ -876,8 +889,8 @@ All identifiers (such as types, type members, parameters and variables) should b
 
 ### DG1702: Use proper casing for language elements
 
-| Language element&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Casing&nbsp;&nbsp;&nbsp;&nbsp; | Example                                                     |
-| ---------------------------------------------------- | ------------------------------ | :---------------------------------------------------------- |
+| Language element | Casing | Example |
+|:--------------------|:----------|:-----------|
 | Namespace                                            | Pascal                         | `System.Drawing`                                            |
 | Type parameter                                       | Pascal                         | `TView`                                                     |
 | Interface                                            | Pascal                         | `IBusinessService`                                          |
@@ -892,10 +905,8 @@ All identifiers (such as types, type members, parameters and variables) should b
 | Method                                               | Pascal                         | `ToString`                                                  |
 | Local function                                       | Pascal                         | `FormatText`                                                |
 | Parameter                                            | Camel                          | `typeName`                                                  |
-| Tuple element names                                  | Pascal                         | `(string First, string Last) name = ("John", "Doe");`       |
-|                                                      |                                | `var name = (First: "John", Last: "Doe");`                  |
-|                                                      |                                | `(string First, string Last) GetName() => ("John", "Doe");` |
-| Variables declared using tuple syntax                | Camel                          | `(string first, string last) = ("John", "Doe");`            |
+| Tuple element names | Pascal | `(string First, string Last) name = ("John", "Doe");` <br/>`var name = (First: "John", Last: "Doe");` <br/>`(string First, string Last) GetName() => ("John", "Doe");` |
+| Variables declared using tuple syntax | Camel | `(string first, string last) = ("John", "Doe");` <br/>`var (first, last) = ("John", "Doe");` <br/> |
 |                                                      |                                | `var (first, last) = ("John", "Doe");`                      |
 | Local variable                                       | Camel                          | `listOfValues`                                              |
 
@@ -926,7 +937,7 @@ For example, use `ButtonOnClick` rather than `BtnOnClick`. Avoid single characte
 For example, the name IComponent uses a descriptive noun, ICustomAttributeProvider uses a noun phrase and IPersistable uses an adjective.
 Bad examples include `SearchExamination` (a page to search for examinations), `Common` (does not end with a noun, and does not explain its purpose) and `SiteSecurity` (although the name is technically okay, it does not say anything about its purpose).
 
-Don't include terms like `Utility` or `Helper` in classes. Classes with names like that are usually static classes and are introduced without considering object-oriented principles (see also AV1008).
+Don't include terms like `Utility` or `Helper` in classes. Classes with names like that are usually static classes and are introduced without considering object-oriented principles (see also [AV1008](#av1008-avoid-static-classes)).
 
 ### AV1709: Name generic type parameters with descriptive names
 
@@ -972,7 +983,7 @@ Although technically correct, statements like the following can be confusing:
 
 Name a method or local function using a verb like `Show` or a verb-object pair such as `ShowDialog`. A good name should give a hint on the *what* of a member, and if possible, the *why*.
 
-Also, don't include `And` in the name of a method or local function. That implies that it is doing more than one thing, which violates the Single Responsibility Principle explained in AV1115.
+Also, don't include `And` in the name of a method or local function. That implies that it is doing more than one thing, which violates the Single Responsibility Principle explained in [AV1115](#av1115-a-property-method-or-local-function-should-do-only-one-thing).
 
 ### AV1725: Name namespaces using names, layers, verbs and features
 
@@ -1027,7 +1038,7 @@ The general convention for methods and local functions that return `Task` or `Ta
 
 When a member or local function returns an `IEnumerable<T>` or other collection class that does not expose a `Count` property, use the `Any()` extension method rather than `Count()` to determine whether the collection contains items. If you do use `Count()`, you risk that iterating over the entire collection might have a significant impact (such as when it really is an `IQueryable<T>` to a persistent store).
 
-**Note:** If you return an `IEnumerable<T>` to prevent changes from calling code as explained in AV1130, and you're developing in .NET 4.5 or higher, consider the new read-only classes.
+**Note:** If you return an `IEnumerable<T>` to prevent changes from calling code as explained in [AV1130](#av1130-return-an-ienumerablet-or-icollectiont-instead-of-a-concrete-collection-class), and you're developing in .NET 4.5 or higher, consider the new read-only classes.
 
 ### AV1820: Only use `async` for low-intensive long-running activities
 
@@ -1039,7 +1050,7 @@ If you do need to execute a CPU bound operation, use `Task.Run` to offload the w
 
 ### AV1830: Beware of mixing up `async`/`await` with `Task.Wait`
 
-`await` does not block the current thread but simply instructs the compiler to generate a state-machine. However, `Task.Wait` blocks the thread and may even cause deadlocks (see AV1835).
+`await` does not block the current thread but simply instructs the compiler to generate a state-machine. However, `Task.Wait` blocks the thread and may even cause deadlocks (see [AV1835](#av1835-beware-of-asyncawait-deadlocks-in-single-threaded-environments)).
 
 ### AV1835: Beware of `async`/`await` deadlocks in single-threaded environments
 
@@ -1060,7 +1071,7 @@ Now when an ASP.NET MVC controller action does this:
         return View(data);  
     }
 
-You end up with a deadlock. Why? Because the `Result` property getter will block until the `async` operation has completed, but since an `async` method will automatically marshal the result back to the original thread and ASP.NET uses a single-threaded synchronization context, they'll be waiting on each other. A similar problem can also happen on WPF, Silverlight or a Windows Store C#/XAML app. Read more about this [here](http://blogs.msdn.com/b/pfxteam/archive/2011/01/13/10115163.aspx).
+You end up with a deadlock. Why? Because the `Result` property getter will block until the `async` operation has completed, but since an `async` method _could_ automatically marshal the result back to the original thread (depending on the current `SynchronizationContext` or `TaskScheduler`) and ASP.NET uses a single-threaded synchronization context, they'll be waiting on each other. A similar problem can also happen on UWP, WPF or a Windows Store C#/XAML app. Read more about this [here](http://blogs.msdn.com/b/pfxteam/archive/2011/01/13/10115163.aspx).
 
 ## Framework Guidelines
 
@@ -1133,7 +1144,7 @@ prefer the use of extension methods from the `System.Linq` namespace:
 
     var query = items.Where(item => item.Length > 0);
 
-Since LINQ queries should be written out over multiple lines for readability, the second example is a bit more compact.
+The second example is a bit less convoluted.
 
 ### AV2221: Use lambda expressions instead of anonymous methods
 
@@ -1182,9 +1193,9 @@ define it like this:
 
 ### AV2301: Write comments and documentation in US English
 
-### DG2305: Document all `public`, `protected` and `internal` types and members
+### AV2305: Document all `public`, `protected` and `internal` types and members
 
-Documenting your code allows Visual Studio to pop-up the documentation when your class is used somewhere else. Furthermore, by properly documenting your classes, tools can generate professionally looking class documentation.
+Documenting your code allows Visual Studio, [Visual Studio Code](https://code.visualstudio.com/) or [Jetbrains Rider](https://www.jetbrains.com/rider/) to pop-up the documentation when your class is used somewhere else. Furthermore, by properly documenting your classes, tools can generate professionally looking class documentation.
 
 ### AV2306: Write XML documentation with other developers in mind
 
@@ -1193,8 +1204,6 @@ Write the documentation of your type with other developers in mind. Assume they 
 ### AV2307: Write MSDN-style documentation
 
 Following the MSDN online help style and word choice helps developers find their way through your documentation more easily.
-
-**Tip:** The tool [GhostDoc](http://submain.com/products/ghostdoc.aspx) can generate a starting point for documenting code with a shortcut key.
 
 ### AV2310: Avoid inline comments
 
@@ -1206,7 +1215,7 @@ Try to focus comments on the *why* and *what* of a code block and not the *how*.
 
 ### AV2318: Don't use comments for tracking work to be done later
 
-Annotating a block of code or some work to be done using a *TODO* or similar comment may seem a reasonable way of tracking work-to-be-done. But in reality, nobody really searches for comments like that. Use a work item tracking system such as Team Foundation Server to keep track of leftovers.
+Annotating a block of code or some work to be done using a *TODO* or similar comment may seem a reasonable way of tracking work-to-be-done. But in reality, nobody really searches for comments like that. Use a work item tracking system to keep track of leftovers.
 
 ## Layout Guidelines
 
@@ -1260,7 +1269,7 @@ Annotating a block of code or some work to be done using a *TODO* or similar com
 
 - Start the LINQ statement with all the `from` expressions and don't interweave them with restrictions.
 
-- Add an empty line between multi-line statements, between multi-line members, after the closing curly braces, between unrelated code blocks, around the `#region` keyword, and between the `using` statements of different root namespaces.
+- Add an empty line between multi-line statements, between multi-line members, after the closing curly braces, between unrelated code blocks, and between the `using` statements of different root namespaces.
 
 ### DG2402: Order namespaces in alphabetic order
 
@@ -1268,7 +1277,7 @@ Annotating a block of code or some work to be done using a *TODO* or similar com
     using AvivaSolutions.Standard;
     using System;
     using System.Collections.Generic;
-    using System.XML;
+    using System.Xml;
     using Telerik.WebControls;
     using Telerik.Ajax;
 
@@ -1290,11 +1299,9 @@ Maintaining a common order allows other team members to find their way in your c
 
 Declare local functions at the bottom of their containing method bodies (after all executable code).
 
-### DG2407: Be reluctant with `#region`
+### AV2407:  Do not use `#region`
 
-Regions can be helpful, but can also hide the main purpose of a class. Therefore, use `#region` only for:
-
-- Auto generated code, like designer code
+Regions require extra work without increasing the quality or the readability of code. Instead they make code harder to view and refactor.
 
 ### AV2410: Use expression-bodied members appropriately
 
@@ -1318,18 +1325,19 @@ Another great all-encompassing trip through the many practices preached by proce
 - [Applying Domain-Driven Design and Patterns: With Examples in C# and .NET](http://www.amazon.com/Applying-Domain-Driven-Design-Patterns-Examples/dp/0321268202) (Jimmy Nilsson)  
 The book that started my interest for both Domain-Driven Design and Test-Driven Development. It's one of those books that I wished I had read a few years earlier. It would have spared me from many mistakes.
 
-- [Jeremy D. Miller's Blog](http://codebetter.com/blogs/jeremy.miller/)  
+- [Jeremy D. Miller's Blog](http://codebetter.com/jeremymiller/author/jeremymiller/)  
 Although he is not that active anymore, in the last couple of years he has written some excellent blog posts on Test-Driven Development, Design Patterns and design principles. I've learned a lot from his real-life and practical insights.
 
-- [LINQ Framework Design Guidelines](http://blogs.msdn.com/b/mirceat/archive/2008/03/13/linq-framework-design-guidelines.aspx)  
-A set of rules and recommendations that you should adhere to when creating your own implementations of IQueryable.
+- [LINQ Framework Design Guidelines](https://blogs.msdn.microsoft.com/mirceat/2008/03/12/linq-framework-design-guidelines/)  
+A set of rules and recommendations that you should adhere to when creating your own implementations of `IQueryable`.
 
-- [Best Practices for c## async/await](http://code.jonwagner.com/2012/09/06/best-practices-for-c-asyncawait/)  
-The rationale and source of several of the new guidelines in this document, written by [Jon Wagner](https://twitter.com/jonwagnerdotcom).
+- [Best Practices for c# async/await](https://msdn.microsoft.com/en-us/magazine/jj991977.aspx)  
+Older (but still valid) overview of crucial practices to follow when adopting `async` and `await` in your own code base.
 
 ### What is this
 
-This document attempts to provide guidelines (or coding standards if you like) for coding in C# 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.1, 7.2 or 7.3 that are both useful and pragmatic.
+This document attempts to provide guidelines (or coding standards if you like) for all versions of C# up to and including 7.3 that are both valuable and pragmatic. Of course, if you create such a document you should practice what you preach. So rest assured, these guidelines are representative to what we at [Aviva Solutions](https://www.avivasolutions.nl) do in our day-to-day work. Notice that not all guidelines have a clear rationale. Some of them are simply choices we made at Aviva Solutions. In the end, it doesn't matter what choice you made, as long as you make one and apply it consistently.
+
 These guidelines are based on: <https://csharpcodingguidelines.com/> by Dennis Doomen of Aviva solutions. Most of the rules are kept as is, but some are updated.
 
 ### What is different compared to Aviva / CSharpGuidelines
@@ -1342,19 +1350,17 @@ Some rules have been changed to match personal preferences. I renamed the rule c
 - AV1535: 1. Added exception for `case` with `return`. 2. Added note for `using`. (now DG1535)
 - AV1702: All private fields are now Camel (now DG1702)
 - AV2201: static usage also uses alias (now DG2201)
-- AV2305: Only exposed calls (now DG2305)
 - AV2400: 1. Added exception for auto-property newlines. 2. Removed parentheses-guideline for all binary expressions. (now DG2400)
 - AV2402: Order all namespaces alphabetically, not System first. (now DG2402)
-- AV2406: 1. Removed `region` for privates. 2. Ordered the default Resharper way. (now DG2406)
-- AV2407: Be even more relucant, only use for automatic generated code? (now DG2407)
+- AV2406: Ordered the default Resharper way. (now DG2406)
 
 ### Why would you use this document
 
 Although some might see coding guidelines as undesired overhead or something that limits creativity, this approach has already proven its value for many years. This is because not every developer:
 
 - is aware that code is generally read 10 times more than it is changed;
-- is aware of the potential pitfalls of certain constructions in C#;
-- is up to speed on certain conventions when using the .NET Framework such as `IDisposable` or the deferred execution nature of LINQ;
+- is aware of the potential pitfalls of certain constructs in C#;
+- is up to speed on certain conventions when using the .NET Framework such as `IDisposable`, `async`/`await`, or the deferred execution nature of LINQ;
 - is aware of the impact of using (or neglecting to use) particular solutions on aspects like security, performance, multi-language support, etc;
 - realizes that not every developer is as capable, skilled or experienced to understand elegant, but potentially very abstract solutions;
 
@@ -1378,14 +1384,13 @@ Regardless of the elegance of someone's solution, if it's too complex for the or
 - Ask all developers to carefully read this document at least once. This will give them a sense of the kind of guidelines the document contains.
 - Make sure there are always a few hard copies of the [Cheat Sheet](https://github.com/dennisdoomen/CSharpGuidelines/releases/latest) close at hand.
 - Include the most critical coding guidelines on your [Project Checklist](https://www.continuousimprover.com/2010/03/alm-practices-5-checklists.html) and verify the remainder as part of your [Peer Review](https://www.continuousimprover.com/2010/02/tfs-development-practices-part-2-peer.html).
-- [ReSharper](http://www.jetbrains.com/resharper/) has an intelligent code inspection engine that, with some configuration, already supports many aspects of the Coding Guidelines. It automatically highlights any code that does not match the rules for naming members (e.g. Pascal or Camel casing), detects dead code, and many other things. One click of the mouse button (or the corresponding keyboard shortcut) is usually enough to fix it.
+- Jetbrain's [ReSharper](http://www.jetbrains.com/resharper/) and their fully fledged Visual Studio replacement [Rider](https://www.jetbrains.com/rider/), has an intelligent code inspection engine that, with some configuration, already supports many aspects of the Coding Guidelines. It automatically highlights any code that does not match the rules for naming members (e.g. Pascal or Camel casing), detects dead code, and many other things. One click of the mouse button (or the corresponding keyboard shortcut) is usually enough to fix it.
 - ReSharper also has a File Structure window that displays an overview of the members of your class or interface, and allows you to easily rearrange them using a simple drag-and-drop action.
 - [CSharpGuidelinesAnalyzer](https://github.com/bkoelman/CSharpGuidelinesAnalyzer) verifies over 40 of our guidelines, while typing code in Visual Studio 2017 and during CI builds. An updated Resharper settings file is included.
-- Using [GhostDoc](http://submain.com/products/ghostdoc.aspx) you can generate XML comments for any member using a keyboard shortcut. The beauty of it is that it closely follows the MSDN-style of documentation. However, you have to be careful not to misuse this tool, and use it as a starter only.
 
 ### Why did Dennis Doomen create it
 
-The idea started in 2002 when Vic Hartog (Philips Medical Systems) and I were assigned the task of writing up a [coding standard](http://www.tiobe.com/content/paperinfo/gemrcsharpcs.pdf) for C# 1.0. Since then, I've regularly added, removed and changed rules based on experiences, feedback from the community and new tooling support offered by a continuous stream of new Visual Studio releases.
+The idea started in 2002 when Vic Hartog (Philips Medical Systems) and I were assigned the task of writing up a [coding standard](http://www.tiobe.com/content/paperinfo/gemrcsharpcs.pdf) for C# 1.0. Since then, I've regularly added, removed and changed rules based on experiences, feedback from the community and new tooling support offered by a continuous stream of new developments in the .NET ecosystem. Special thanks go to [Bart Koelman](https://github.com/bkoelman) for being a very active contributor over all those years.
 
 Additionally, after reading [Robert C. Martin](https://sites.google.com/site/unclebobconsultingllc/)'s book [Clean Code: A Handbook of Agile Software Craftsmanship](http://www.amazon.com/Clean-Code-Handbook-Software-Craftsmanship/dp/0132350882), I became a big fan of his ideas and decided to include some of his smells and heuristics as guidelines. Notice though, that this document is in no way a replacement for his book. I sincerely recommend that you read his book to gain a solid understanding of the rationale behind his recommendations.
 
@@ -1397,7 +1402,7 @@ The document does not state that projects must comply with these guidelines, nei
 
 ### Feedback and disclaimer
 
-This document has been compiled using many contributions from community members, blog posts, on-line discussions and many years of developing in C#. If you have questions, comments or suggestions, just let me know by sending me an email at [dennis.doomen@avivasolutions.nl](mailto:dennis.doomen@avivasolutions.nl), [creating an issue](https://github.com/dennisdoomen/csharpguidelines/issues) or Pull Request on GitHub, or ping me at [http://twitter.com/ddoomen](http://twitter.com/ddoomen). I will try to revise and republish this document with new insights, experiences and remarks on a regular basis.
+This document has been compiled using many contributions from community members, blog posts, on-line discussions and two decades of developing in C#. If you have questions, comments or suggestions, just let me know by sending me an email at [dennis.doomen@avivasolutions.nl](mailto:dennis.doomen@avivasolutions.nl), [creating an issue](https://github.com/dennisdoomen/csharpguidelines/issues) or Pull Request on GitHub, ping me at [http://twitter.com/ddoomen](http://twitter.com/ddoomen) or join the [Gitter discussions](https://gitter.im/dennisdoomen/CSharpGuidelines). I will try to revise and republish this document with new insights, experiences and remarks on a regular basis.
 
 Notice though that it merely reflects my view on proper C# code so Aviva Solutions will not be liable for any direct or indirect damages caused by applying the guidelines of this document. This document is published under a Creative Commons license, specifically the [Creative Commons Attribution-ShareAlike 4.0](http://creativecommons.org/licenses/by-sa/4.0/) license.
 
