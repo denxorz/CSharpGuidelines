@@ -70,6 +70,7 @@ Single page version of <https://csharpcodingguidelines.com/> .
   - [AV1568: Don't use parameters as temporary variables](#av1568-dont-use-parameters-as-temporary-variables)
   - [AV1570: Prefer `is` patterns over `as` operations](#av1570-prefer-is-patterns-over-as-operations)
   - [AV1575: Don't comment out code](#av1575-dont-comment-out-code)
+  - [AV1580: Write code that is easy to debug](#av1580-write-code-that-is-easy-to-debug)
 - [Naming Guidelines](#naming-guidelines)
   - [AV1701: Use US English](#av1701-use-us-english)
   - [DG1702: Use proper casing for language elements](#dg1702-use-proper-casing-for-language-elements)
@@ -94,7 +95,7 @@ Single page version of <https://csharpcodingguidelines.com/> .
 - [Performance Guidelines](#performance-guidelines)
   - [AV1800: Consider using `Any()` to determine whether an `IEnumerable<T>` is empty](#av1800-consider-using-any-to-determine-whether-an-ienumerablet-is-empty)
   - [AV1820: Only use `async` for low-intensive long-running activities](#av1820-only-use-async-for-low-intensive-long-running-activities)
-  - [AV1825: Prefer `Task.Run` for CPU-intensive activities](#av1825-prefer-taskrun-for-cpu-intensive-activities)
+  - [AV1825: Prefer `Task.Run` or `Task.Factory.StartNew` for CPU-intensive activities](#av1825-prefer-taskrun-or-taskfactorystartnew-for-cpu-intensive-activities)
   - [AV1830: Beware of mixing up `async`/`await` with `Task.Wait`](#av1830-beware-of-mixing-up-asyncawait-with-taskwait)
   - [AV1835: Beware of `async`/`await` deadlocks in single-threaded environments](#av1835-beware-of-asyncawait-deadlocks-in-single-threaded-environments)
 - [Framework Guidelines](#framework-guidelines)
@@ -177,29 +178,33 @@ With the exception of extension method containers, static classes very often lea
 Compiler warning [CS0114](https://docs.microsoft.com/en-us/dotnet/csharp/misc/cs0114) is issued when breaking [Polymorphism](http://en.wikipedia.org/wiki/Polymorphism_in_object-oriented_programming), one of the most essential object-orientation principles.
 The warning goes away when you add the `new` keyword, but it keeps sub-classes difficult to understand. Consider the following two classes:
 
-    public class Book  
+```csharp
+public class Book  
+{
+    public virtual void Print()  
     {
-        public virtual void Print()  
-        {
-            Console.WriteLine("Printing Book");
-        }  
-    }
-    
-    public class PocketBook : Book  
+        Console.WriteLine("Printing Book");
+    }  
+}
+
+public class PocketBook : Book  
+{
+    public new void Print()
     {
-        public new void Print()
-        {
-            Console.WriteLine("Printing PocketBook");
-        }  
-    }
+        Console.WriteLine("Printing PocketBook");
+    }  
+}
+```
 
 This will cause behavior that you would not normally expect from class hierarchies:
 
-    PocketBook pocketBook = new PocketBook();
-    
-    pocketBook.Print(); // Outputs "Printing PocketBook "
-    
-    ((Book)pocketBook).Print(); // Outputs "Printing Book"
+```csharp
+PocketBook pocketBook = new PocketBook();
+
+pocketBook.Print(); // Outputs "Printing PocketBook "
+
+((Book)pocketBook).Print(); // Outputs "Printing Book"
+```
 
 It should not make a difference whether you call `Print()` through a reference to the base class or through the derived class.
 
@@ -217,7 +222,9 @@ Having dependencies from a base class to its sub-classes goes against proper obj
 
 If you find yourself writing code like this then you might be violating the [Law of Demeter](http://en.wikipedia.org/wiki/Law_of_Demeter).
 
-    someObject.SomeProperty.GetChild().Foo()
+```csharp
+someObject.SomeProperty.GetChild().Foo()
+```
 
 An object should not expose any other classes it depends on because callers may misuse that exposed property or method to access the object behind it. By doing so, you allow calling code to become coupled to the class you are using, and thereby limiting the chance that you can easily replace it in a future stage.
 
@@ -241,21 +248,25 @@ In general, if you find a lot of data-only classes in your code base, you probab
 
 Validate incoming arguments from public members. For example:
 
-    public void SetAge(int years)
-    {
-        AssertValueIsInRange(years, 0, 200, nameof(years));
-        
-        this.age = years;
-    }
+```csharp
+public void SetAge(int years)
+{
+    AssertValueIsInRange(years, 0, 200, nameof(years));
+
+    this.age = years;
+}
+```
 
 Protect invariants on internal state. For example:
 
-    public void Render()
-    {
-        AssertNotDisposed();
-        
-        // ...
-    }
+```csharp
+public void Render()
+{
+    AssertNotDisposed();
+
+    // ...
+}
+```
 
 ## Member Design Guidelines
 
@@ -340,12 +351,14 @@ When throwing or handling exceptions in code that uses `async`/`await` or a `Tas
 An event that has no subscribers is `null`. So before invoking, always make sure that the delegate list represented by the event variable is not `null`.
 Invoke using the null conditional operator, because it additionally prevents conflicting changes to the delegate list from concurrent threads.
 
-    event EventHandler<NotifyEventArgs> Notify;
+```csharp
+event EventHandler<NotifyEventArgs> Notify;
 
-    protected virtual void OnNotify(NotifyEventArgs args)
-    {
-        Notify?.Invoke(this, args);
-    }
+protected virtual void OnNotify(NotifyEventArgs args)
+{
+    Notify?.Invoke(this, args);
+}
+```
 
 ### AV1235: Don't pass `null` as the `sender` argument when raising an event
 
@@ -357,43 +370,47 @@ Often an event handler is used to handle similar events from multiple senders. T
 
 Instead of casting to and from the object type in generic types or methods, use `where` constraints or the `as` operator to specify the exact characteristics of the generic parameter. For example:
 
-    class SomeClass  
-    {}
-    
-    // Don't  
-    class MyClass  
-    {
-        void SomeMethod(T t)  
-        {  
-            object temp = t;  
-            SomeClass obj = (SomeClass) temp;  
-        }  
-    }
-    
-    // Do  
-    class MyClass where T : SomeClass  
-    {
-        void SomeMethod(T t)  
-        {  
-            SomeClass obj = t;  
-        }  
-    }
+```csharp
+class SomeClass  
+{}
+
+// Don't  
+class MyClass  
+{
+    void SomeMethod(T t)  
+    {  
+        object temp = t;  
+        SomeClass obj = (SomeClass) temp;  
+    }  
+}
+
+// Do  
+class MyClass where T : SomeClass  
+{
+    void SomeMethod(T t)  
+    {  
+        SomeClass obj = t;  
+    }  
+}
+```
 
 ### AV1250: Evaluate the result of a LINQ expression before returning it
 
 Consider the following code snippet
 
-    public IEnumerable<GoldMember> GetGoldMemberCustomers()
-    {
-        const decimal GoldMemberThresholdInEuro = 1_000_000;
-        
-        var query = 
-            from customer in db.Customers
-            where customer.Balance > GoldMemberThresholdInEuro
-            select new GoldMember(customer.Name, customer.Balance);
-        
-        return query;  
-    }
+```csharp
+public IEnumerable<GoldMember> GetGoldMemberCustomers()
+{
+    const decimal GoldMemberThresholdInEuro = 1_000_000;
+
+    var query =
+        from customer in db.Customers
+        where customer.Balance > GoldMemberThresholdInEuro
+        select new GoldMember(customer.Name, customer.Balance);
+
+    return query;  
+}
+```
 
 Since LINQ queries use deferred execution, returning `query` will actually return the expression tree representing the above query. Each time the caller evaluates this result using a `foreach` loop or similar, the entire query is re-executed resulting in new instances of `GoldMember` every time. Consequently, you cannot use the `==` operator to compare multiple `GoldMember` instances. Instead, always explicitly evaluate the result of a LINQ query using `ToList()`, `ToArray()` or similar methods.
 
@@ -415,7 +432,9 @@ To make a more conscious decision on which members to make available to other cl
 
 Although a property like `customer.HasNoOrders` makes sense, avoid using it in a negative condition like this:
 
-    bool hasOrders = !customer.HasNoOrders;
+```csharp
+bool hasOrders = !customer.HasNoOrders;
+```
 
 Double negatives are more difficult to grasp than simple expressions, and people tend to read over the double negative easily.
 
@@ -441,53 +460,67 @@ Use Pascal casing to name the file and don't use underscores. Don't include (the
 
 When using partial types and allocating a part per file, name each file after the logical part that part plays. For example:
 
-    // In MyClass.cs
-    public partial class MyClass
-    {...}
-    
-    // In MyClass.Designer.cs    
-    public partial class MyClass
-    {...}
+```csharp
+// In MyClass.cs
+public partial class MyClass
+{...}
+
+// In MyClass.Designer.cs
+public partial class MyClass
+{...}
+```
 
 ### AV1510: Use `using` statements instead of fully qualified type names
 
 Limit usage of fully qualified type names to prevent name clashing. For example, don't do this:
 
-    var list = new System.Collections.Generic.List<string>();
+```csharp
+var list = new System.Collections.Generic.List<string>();
+```
 
 Instead, do this:
 
-    using System.Collections.Generic;
-    
-    var list = new List<string>();
+```csharp
+using System.Collections.Generic;
+
+var list = new List<string>();
+```
 
 If you do need to prevent name clashing, use a `using` directive to assign an alias:
 
-    using Label = System.Web.UI.WebControls.Label;
+```csharp
+using Label = System.Web.UI.WebControls.Label;
+```
 
 ### AV1515: Don't use "magic" numbers
 
 Don't use literal values, either numeric or strings, in your code, other than to define symbolic constants. For example:
 
-    public class Whatever  
-    {
-        public static readonly Color PapayaWhip = new Color(0xFFEFD5);
-        public const int MaxNumberOfWheels = 18;
-        public const byte ReadCreateOverwriteMask = 0b0010_1100;
-    }
+```csharp
+public class Whatever  
+{
+    public static readonly Color PapayaWhip = new Color(0xFFEFD5);
+    public const int MaxNumberOfWheels = 18;
+    public const byte ReadCreateOverwriteMask = 0b0010_1100;
+}
+```
 
 Strings intended for logging or tracing are exempt from this rule. Literals are allowed when their meaning is clear from the context, and not subject to future changes, For example:
 
-    mean = (a + b) / 2; // okay  
-    WaitMilliseconds(waitTimeInSeconds * 1000); // clear enough
+```csharp
+mean = (a + b) / 2; // okay  
+WaitMilliseconds(waitTimeInSeconds * 1000); // clear enough
+```
 
 If the value of one constant depends on the value of another, attempt to make this explicit in the code.
 
-    public class SomeSpecialContainer  
-    {  
-        public const int MaxItems = 32;  
-        public const int HighWaterMark = 3 * MaxItems / 4; // at 75%  
-    }
+```csharp
+public class SomeSpecialContainer  
+{  
+    public const int MaxItems = 32;  
+    public const int HighWaterMark = 3 * MaxItems / 4; // at 75%  
+}
+```
 
 **Note:** An enumeration can often be used for certain types of symbolic constants.
 
@@ -495,17 +528,21 @@ If the value of one constant depends on the value of another, attempt to make th
 
 Only use `var` as the result of a LINQ query, or if the type is obvious from the same statement and using it would improve readability. So don't
 
-    var item = 3;                              // what type? int? uint? float?
-    var myfoo = MyFactoryMethod.Create("arg"); // Not obvious what base-class or            
-                                               // interface to expect. Also
-                                               // difficult to refactor if you can't
-                                               // search for the class
+```csharp
+var item = 3;                              // what type? int? uint? float?
+var myfoo = MyFactoryMethod.Create("arg"); // Not obvious what base-class or
+                                           // interface to expect. Also
+                                           // difficult to refactor if you can't
+                                           // search for the class
+```
 
 Instead, use `var` like this:
 
-    var query = from order in orders where order.Items > 10 and order.TotalValue > 1000;
-    var repository = new RepositoryFactory.Get();    
-    var list = new ReadOnlyCollection();
+```csharp
+var query = from order in orders where order.Items > 10 and order.TotalValue > 1000;
+var repository = new RepositoryFactory.Get();
+var list = new ReadOnlyCollection();
+```
 
 In all of three above examples it is clear what type to expect. For a more detailed rationale about the advantages and disadvantages of using `var`, read Eric Lippert's [Uses and misuses of implicit typing](http://blogs.msdn.com/b/ericlippert/archive/2011/04/20/uses-and-misuses-of-implicit-typing.aspx).
 
@@ -517,70 +554,82 @@ Avoid the C and Visual Basic styles where all variables have to be defined at th
 
 Don't use confusing constructs like the one below:
 
-    var result = someField = GetSomeMethod();
+```csharp
+var result = someField = GetSomeMethod();
+```
 
 **Exception:** Multiple assignments per statement are allowed by using out variables, is-patterns or deconstruction into tuples. Examples:
 
-    bool success = int.TryParse(text, out int result);
-    
-    if ((items[0] is string text) || (items[1] is Action action))
-    {
-    }
+```csharp
+bool success = int.TryParse(text, out int result);
 
-    (string name, string value) = SplitNameValuePair(text);
+if ((items[0] is string text) || (items[1] is Action action))
+{
+}
+
+(string name, string value) = SplitNameValuePair(text);
+```
 
 ### AV1523: Favor object and collection initializers over separate statements
 
 Instead of:
 
-    var startInfo = new ProcessStartInfo("myapp.exe");    
-    startInfo.StandardOutput = Console.Output;
-    startInfo.UseShellExecute = true;
+```csharp
+var startInfo = new ProcessStartInfo("myapp.exe");
+startInfo.StandardOutput = Console.Output;
+startInfo.UseShellExecute = true;
 
-    var countries = new List();
-    countries.Add("Netherlands");
-    countries.Add("United States");
+var countries = new List();
+countries.Add("Netherlands");
+countries.Add("United States");
 
-    var countryLookupTable = new Dictionary<string, string>();
-    countryLookupTable.Add("NL", "Netherlands");
-    countryLookupTable.Add("US", "United States");
+var countryLookupTable = new Dictionary<string, string>();
+countryLookupTable.Add("NL", "Netherlands");
+countryLookupTable.Add("US", "United States");
+```
 
 Use [Object and Collection Initializers](http://msdn.microsoft.com/en-us/library/bb384062.aspx):
 
-    var startInfo = new ProcessStartInfo("myapp.exe")  
-    {
-        StandardOutput = Console.Output,
-        UseShellExecute = true  
-    };
-    
-    var countries = new List { "Netherlands", "United States" };
-    
-    var countryLookupTable = new Dictionary<string, string>
-    {
-        ["NL"] = "Netherlands",
-        ["US"] = "United States"
-    };
+```csharp
+var startInfo = new ProcessStartInfo("myapp.exe")  
+{
+    StandardOutput = Console.Output,
+    UseShellExecute = true  
+};
+
+var countries = new List { "Netherlands", "United States" };
+
+var countryLookupTable = new Dictionary<string, string>
+{
+    ["NL"] = "Netherlands",
+    ["US"] = "United States"
+};
+```
 
 ### AV1525: Don't make explicit comparisons to `true` or `false`
 
 It is usually bad style to compare a `bool`-type expression to `true` or `false`. For example:
 
-    while (condition == false) // wrong; bad style  
-    while (condition != true) // also wrong  
-    while (((condition == true) == true) == true) // where do you stop?  
-    while (condition) // OK
+```csharp
+while (condition == false) // wrong; bad style  
+while (condition != true) // also wrong  
+while (((condition == true) == true) == true) // where do you stop?  
+while (condition) // OK
+```
 
 ### AV1530: Don't change a loop variable inside a `for` loop
 
 Updating the loop variable within the loop body is generally considered confusing, even more so if the loop variable is modified in more than one place.
 
-    for (int index = 0; index < 10; ++index)  
-    {  
-        if (someCondition)
-        {
-            index = 11; // Wrong! Use 'break' or 'continue' instead.  
-        }
+```csharp
+for (int index = 0; index < 10; ++index)  
+{  
+    if (someCondition)
+    {
+        index = 11; // Wrong! Use 'break' or 'continue' instead.  
     }
+}
+```
 
 ### AV1532: Avoid nested loops
 
@@ -590,20 +639,22 @@ A method that nests loops is more difficult to understand than one with only a s
 
 Please note that this also avoids possible confusion in statements of the form:
 
-    if (isActive) if (isVisible) Foo(); else Bar(); // which 'if' goes with the 'else'?
-    
-    // The right way:  
-    if (isActive)  
+```csharp
+if (isActive) if (isVisible) Foo(); else Bar(); // which 'if' goes with the 'else'?
+
+// The right way:  
+if (isActive)  
+{  
+    if (isVisible)  
     {  
-        if (isVisible)  
-        {  
-            Foo();  
-        }  
-        else  
-        {  
-            Bar();  
-        }  
-    }
+        Foo();  
+    }  
+    else  
+    {  
+        Bar();  
+    }  
+}
+```
 
 Note that a block after the keyword `using` is also expected, but can be omitted when two `using`s are used successively.
   
@@ -613,50 +664,54 @@ Note that a block after the keyword `using` is also expected, but can be omitted
 
 Add a descriptive comment if the `default` block is supposed to be empty. Moreover, if that block is not supposed to be reached throw an `InvalidOperationException` to detect future changes that may fall through the existing cases. This ensures better code, because all paths the code can travel have been thought about.
 
-    void Foo(string answer)  
+```csharp
+void Foo(string answer)  
+{  
+    switch (answer)  
     {  
-        switch (answer)  
-        {  
-            case "no":  
-            {
-              Console.WriteLine("You answered with No");  
-              break;
-            }  
-              
-            case "yes":
-            {  
-              Console.WriteLine("You answered with Yes");  
-              break;
-            }
-            
-            default:  
-            {
-              // Not supposed to end up here.  
-              throw new InvalidOperationException("Unexpected answer " + answer);
-            }  
+        case "no":  
+        {
+            Console.WriteLine("You answered with No");  
+            break;
         }  
-    }
+
+        case "yes":
+        {  
+            Console.WriteLine("You answered with Yes");  
+            break;
+        }
+
+        default:  
+        {
+            // Not supposed to end up here.  
+            throw new InvalidOperationException("Unexpected answer " + answer);
+        }  
+    }  
+}
+```
 
 ### AV1537: Finish every `if`-`else`-`if` statement with an `else` clause
 
 For example:
 
-    void Foo(string answer)  
+```csharp
+void Foo(string answer)  
+{  
+    if (answer == "no")  
     {  
-        if (answer == "no")  
-        {  
-            Console.WriteLine("You answered with No");  
-        }  
-        else if (answer == "yes")  
-        {  
-            Console.WriteLine("You answered with Yes");  
-        }  
-        else  
-        {  
-            // What should happen when this point is reached? Ignored? If not,
-            // throw an InvalidOperationException.  
-        }  
-    }
+        Console.WriteLine("You answered with No");  
+    }  
+    else if (answer == "yes")  
+    {  
+        Console.WriteLine("You answered with Yes");  
+    }  
+    else  
+    {  
+        // What should happen when this point is reached? Ignored? If not,
+        // throw an InvalidOperationException.  
+    }  
+}
+```
 
 ### AV1540: Be reluctant with multiple `return` statements
 
@@ -666,97 +721,117 @@ One entry, one exit is a sound principle and keeps control flow readable. Howeve
 
 Express your intentions directly. For example, rather than:
 
-    bool isPositive;
+```csharp
+bool isPositive;
 
-    if (value > 0)
-    {
-        isPositive = true;
-    }
-    else
-    {
-        isPositive = false;
-    }
+if (value > 0)
+{
+    isPositive = true;
+}
+else
+{
+    isPositive = false;
+}
+```
 
 write:
 
-    bool isPositive = (value > 0);
+```csharp
+bool isPositive = (value > 0);
+```
 
 Or instead of:
 
-    string classification;
+```csharp
+string classification;
 
-    if (value > 0)
-    {
-        classification = "positive";
-    }
-    else
-    {
-        classification = "negative";
-    }
+if (value > 0)
+{
+    classification = "positive";
+}
+else
+{
+    classification = "negative";
+}
 
-    return classification;
+return classification;
+```
 
 write:
 
-    return (value > 0) ? "positive" : "negative";
+```csharp
+return (value > 0) ? "positive" : "negative";
+```
 
 Or instead of:
 
-    int result;
+```csharp
+int result;
 
-    if (offset == null)
-    {
-        result = -1;
-    }
-    else
-    {
-        result = offset.Value;
-    }
+if (offset == null)
+{
+    result = -1;
+}
+else
+{
+    result = offset.Value;
+}
 
-    return result;
+return result;
+```
 
 write:
 
-    return offset ?? -1;
+```csharp
+return offset ?? -1;
+```
 
 Or instead of:
 
-    if (employee.Manager != null)
-    {
-        return employee.Manager.Name;
-    }
-    else
-    {
-        return null;
-    }
+```csharp
+if (employee.Manager != null)
+{
+    return employee.Manager.Name;
+}
+else
+{
+    return null;
+}
+```
 
 write:
 
-    return employee.Manager?.Name;
+```csharp
+return employee.Manager?.Name;
+```
 
 ### AV1547: Encapsulate complex expressions in a property, method or local function
 
 Consider the following example:
 
-    if (member.HidesBaseClassMember && (member.NodeType != NodeType.InstanceInitializer))
-    {
-        // do something
-    }
+```csharp
+if (member.HidesBaseClassMember && (member.NodeType != NodeType.InstanceInitializer))
+{
+    // do something
+}
+```
 
 In order to understand what this expression is about, you need to analyze its exact details and all of its possible outcomes. Obviously, you can add an explanatory comment on top of it, but it is much better to replace this complex expression with a clearly named method:
 
-    if (NonConstructorMemberUsesNewKeyword(member))  
-    {  
-        // do something
-    }  
-  
-  
-    private bool NonConstructorMemberUsesNewKeyword(Member member)  
-    {  
-        return
-            member.HidesBaseClassMember &&
-            (member.NodeType != NodeType.InstanceInitializer);
-    }
+```csharp
+if (NonConstructorMemberUsesNewKeyword(member))  
+{  
+    // do something
+}  
+
+
+private bool NonConstructorMemberUsesNewKeyword(Member member)  
+{  
+    return
+        member.HidesBaseClassMember &&
+        (member.NodeType != NodeType.InstanceInitializer);
+}
+```
 
 You still need to understand the expression if you are modifying it, but the calling code is now much easier to grasp.
 
@@ -764,25 +839,27 @@ You still need to understand the expression if you are modifying it, but the cal
 
 This guideline only applies to overloads that are intended to provide optional arguments. Consider, for example, the following code snippet:
 
-    public class MyString  
-    {
-        private string someText;
-        
-        public int IndexOf(string phrase)  
-        {  
-            return IndexOf(phrase, 0); 
-        }
-        
-        public int IndexOf(string phrase, int startIndex)  
-        {  
-            return IndexOf(phrase, startIndex, someText.Length - startIndex);
-        }
-        
-        public virtual int IndexOf(string phrase, int startIndex, int count)  
-        {  
-            return someText.IndexOf(phrase, startIndex, count);
-        }  
+```csharp
+public class MyString  
+{
+    private string someText;
+
+    public int IndexOf(string phrase)  
+    {  
+        return IndexOf(phrase, 0);
     }
+
+    public int IndexOf(string phrase, int startIndex)  
+    {  
+        return IndexOf(phrase, startIndex, someText.Length - startIndex);
+    }
+
+    public virtual int IndexOf(string phrase, int startIndex, int count)  
+    {  
+        return someText.IndexOf(phrase, startIndex, count);
+    }  
+}
+```
 
 The class `MyString` provides three overloads for the `IndexOf` method, but two of them simply call the one with one more parameter. Notice that the same rule applies to class constructors; implement the most complete overload and call that one from the other overloads using the `this()` operator. Also notice that the parameters with the same name should appear in the same position in all overloads.
 
@@ -792,11 +869,13 @@ The class `MyString` provides three overloads for the `IndexOf` method, but two 
 
 The only valid reason for using C# 4.0's optional parameters is to replace the example from rule [AV1551](#av1551-call-the-more-overloaded-method-from-other-overloads) with a single method like:
 
-    public virtual int IndexOf(string phrase, int startIndex = 0, int count = -1)
-    {
-        int length = (count == -1) ? (someText.Length - startIndex) : count;
-        return someText.IndexOf(phrase, startIndex, length);
-    }
+```csharp
+public virtual int IndexOf(string phrase, int startIndex = 0, int count = -1)
+{
+    int length = (count == -1) ? (someText.Length - startIndex) : count;
+    return someText.IndexOf(phrase, startIndex, length);
+}
+```
 
 Since strings, lists and collections should never be `null` according to rule [AV1135](#av1135-properties-arguments-and-return-values-representing-strings-collections-or-tasks-should-never-be-null), if you have an optional parameter of these types with default value `null` then you must use overloaded methods instead.
 
@@ -822,7 +901,9 @@ C# 4.0's named arguments have been introduced to make it easier to call COM comp
 
 **Exception:** The only exception where named arguments improve readability is when calling a method of some code base you don't control that has a `bool` parameter, like this:  
 
-    object[] myAttributes = type.GetCustomAttributes(typeof(MyAttribute), inherit: false);
+```csharp
+object[] myAttributes = type.GetCustomAttributes(typeof(MyAttribute), inherit: false);
+```
 
 ### AV1561: Don't declare signatures with more than 3 parameters
 
@@ -839,17 +920,23 @@ They make code less understandable and might cause people to introduce bugs. Ins
 
 **Exception:** Calling and declaring members that implement the [TryParse](https://docs.microsoft.com/en-us/dotnet/api/system.int32.tryparse) pattern is allowed. For example:
 
-    bool success = int.TryParse(text, out int number);
+```csharp
+bool success = int.TryParse(text, out int number);
+```
 
 ### AV1564: Avoid signatures that take a `bool` parameter
 
 Consider the following method signature:
 
-    public Customer CreateCustomer(bool platinumLevel) {}
+```csharp
+public Customer CreateCustomer(bool platinumLevel) {}
+```
 
 On first sight this signature seems perfectly fine, but when calling this method you will lose this purpose completely:
 
-    Customer customer = CreateCustomer(true);
+```csharp
+Customer customer = CreateCustomer(true);
+```
 
 Often, a method taking such a bool is doing more than one thing and needs to be refactored into two or more methods. An alternative solution is to replace the bool with an enumeration.
 
@@ -862,20 +949,36 @@ Never use a parameter as a convenient variable for storing temporary state. Even
 If you use 'as' to safely upcast an interface reference to a certain type, always verify that the operation does not return `null`. Failure to do so may cause a `NullReferenceException` at a later stage if the object did not implement that interface.
 Pattern matching syntax prevents this and improves readability. For example, instead of:
 
-    var remoteUser = user as RemoteUser;
-    if (remoteUser != null)
-    {
-    }
+```csharp
+var remoteUser = user as RemoteUser;
+if (remoteUser != null)
+{
+}
+```
 
 write:
 
-    if (user is RemoteUser remoteUser)
-    {
-    }
+```csharp
+if (user is RemoteUser remoteUser)
+{
+}
+```
 
 ### AV1575: Don't comment out code
 
 Never check in code that is commented out. Instead, use a work item tracking system to keep track of some work to be done. Nobody knows what to do when they encounter a block of commented-out code. Was it temporarily disabled for testing purposes? Was it copied as an example? Should I delete it?
+
+### AV1580: Write code that is easy to debug
+
+Because debugger breakpoints cannot be set inside expressions, avoid overuse of nested method calls. For example, a line like:
+
+```csharp
+string result = ConvertToXml(ApplyTransforms(ExecuteQuery(GetConfigurationSettings(source))));
+```
+
+requires extra steps to inspect intermediate method return values. On the other hard, were this expression broken into intermediate variables, setting a breakpoint on one of them would be sufficient.
+
+**Note** This does not apply to chaining method calls, which is a common pattern in fluent APIs.
 
 ## Naming Guidelines
 
@@ -947,20 +1050,22 @@ Don't include terms like `Utility` or `Helper` in classes. Classes with names li
 
 ### AV1710: Don't repeat the name of a class or enumeration in its members
 
-    class Employee
-    {
-        // Wrong!
-        static GetEmployee() {...}
-        DeleteEmployee() {...}
-        
-        // Right
-        static Get() {...}
-        Delete() {...}
-        
-        // Also correct.
-        AddNewJob() {...}
-        RegisterForMeeting() {...}
-    }
+```csharp
+class Employee
+{
+  // Wrong!
+  static GetEmployee() {...}
+  DeleteEmployee() {...}
+
+  // Right
+  static Get() {...}
+  Delete() {...}
+
+  // Also correct.
+  AddNewJob() {...}
+  RegisterForMeeting() {...}
+}
+```
 
 ### AV1711: Name members similarly to members of related .NET Framework classes
 
@@ -970,7 +1075,9 @@ Don't include terms like `Utility` or `Helper` in classes. Classes with names li
 
 Although technically correct, statements like the following can be confusing:
 
-    bool b001 = (lo == l0) ? (I1 == 11) : (lOl != 101);
+```csharp
+bool b001 = (lo == l0) ? (I1 == 11) : (lOl != 101);
+```
 
 ### AV1715: Properly name properties
 
@@ -989,12 +1096,14 @@ Also, don't include `And` in the name of a method or local function. That implie
 
 For instance, the following namespaces are good examples of that guideline.
 
-    AvivaSolutions.Commerce.Web
-    NHibernate.Extensibility
-    Microsoft.ServiceModel.WebApi
-    Microsoft.VisualStudio.Debugging
-    FluentAssertion.Primitives
-    CaliburnMicro.Extensions
+```csharp
+AvivaSolutions.Commerce.Web
+NHibernate.Extensibility
+Microsoft.ServiceModel.WebApi
+Microsoft.VisualStudio.Debugging
+FluentAssertion.Primitives
+CaliburnMicro.Extensions
+```
 
 **Note:** Never allow namespaces to contain the name of a type, but a noun in its plural form (e.g. `Collections`) is usually OK.
 
@@ -1002,7 +1111,9 @@ For instance, the following namespaces are good examples of that guideline.
 
 Name events with a verb or a verb phrase. For example: `Click`, `Deleted`, `Closing`, `Minimizing`, and `Arriving`. For example, the declaration of the `Search` event may look like this:
 
-    public event EventHandler<SearchArgs> Search;
+```csharp
+public event EventHandler<SearchArgs> Search;
+```
 
 ### AV1737: Use `-ing` and `-ed` to express pre-events and post-events
 
@@ -1022,7 +1133,9 @@ It is good practice to prefix the method that handles an event with "On". For ex
 
 If you use a lambda expression (for instance, to subscribe to an event) and the actual parameters of the event are irrelevant, use the following convention to make that explicit:
 
-    button.Click += (_, __) => HandleClick();
+```csharp
+button.Click += (_, __) => HandleClick();
+```
 
 ### AV1745: Group extension methods in a class suffixed with Extensions
 
@@ -1044,9 +1157,9 @@ When a member or local function returns an `IEnumerable<T>` or other collection 
 
 The usage of `async` won't automagically run something on a worker thread like `Task.Run` does. It just adds the necessary logic to allow releasing the current thread, and marshal the result back on that same thread if a long-running asynchronous operation has completed. In other words, use `async` only for I/O bound operations.
 
-### AV1825: Prefer `Task.Run` for CPU-intensive activities
+### AV1825: Prefer `Task.Run` or `Task.Factory.StartNew` for CPU-intensive activities
 
-If you do need to execute a CPU bound operation, use `Task.Run` to offload the work to a thread from the Thread Pool. Remember that you have to marshal the result back to your main thread manually.
+If you do need to execute a CPU bound operation, use `Task.Run` to offload the work to a thread from the Thread Pool. For long-running operations use `Task.Factory.StartNew` with `TaskCreationOptions.LongRunning` parameter to create a new thread. Remember that you have to marshal the result back to your main thread manually.
 
 ### AV1830: Beware of mixing up `async`/`await` with `Task.Wait`
 
@@ -1056,20 +1169,24 @@ If you do need to execute a CPU bound operation, use `Task.Run` to offload the w
 
 Consider the following asynchronous method:
 
-    private async Task GetDataAsync()
-    {
-        var result = await MyWebService.GetDataAsync();
-        return result.ToString();
-    }
+```csharp
+private async Task GetDataAsync()
+{
+    var result = await MyWebService.GetDataAsync();
+    return result.ToString();
+}
+```
 
 Now when an ASP.NET MVC controller action does this:
 
-    public ActionResult ActionAsync()
-    {
-        var data = GetDataAsync().Result;
-        
-        return View(data);  
-    }
+```csharp
+public ActionResult ActionAsync()
+{
+    var data = GetDataAsync().Result;
+
+    return View(data);  
+}
+```
 
 You end up with a deadlock. Why? Because the `Result` property getter will block until the `async` operation has completed, but since an `async` method _could_ automatically marshal the result back to the original thread (depending on the current `SynchronizationContext` or `TaskScheduler`) and ASP.NET uses a single-threaded synchronization context, they'll be waiting on each other. A similar problem can also happen on UWP, WPF or a Windows Store C#/XAML app. Read more about this [here](http://blogs.msdn.com/b/pfxteam/archive/2011/01/13/10115163.aspx).
 
@@ -1085,46 +1202,66 @@ Language syntax makes code more concise. The abstractions make later refactoring
 
 Prefer:
 
-    (string, int) tuple = ("", 1);
+```csharp
+(string, int) tuple = ("", 1);
+```
 
 rather than:
 
-    ValueTuple<string, int> tuple = new ValueTuple<string, int>("", 1);
+```csharp
+ValueTuple<string, int> tuple = new ValueTuple<string, int>("", 1);
+```
 
 Prefer:
 
-    DateTime? startDate;
+```csharp
+DateTime? startDate;
+```
 
 rather than:
 
-    Nullable<DateTime> startDate;
+```csharp
+Nullable<DateTime> startDate;
+```
 
 Prefer:
 
-    if (startDate != null) ...
+```csharp
+if (startDate != null) ...
+```
 
 rather than:
 
-    if (startDate.HasValue) ...
+```csharp
+if (startDate.HasValue) ...
+```
 
 Prefer:
 
-    if (startDate > DateTime.Now) ...
+```csharp
+if (startDate > DateTime.Now) ...
+```
 
 rather than:
 
-    if (startDate.HasValue && startDate.Value > DateTime.Now) ...
+```csharp
+if (startDate.HasValue && startDate.Value > DateTime.Now) ...
+```
 
 Prefer:
 
-    (DateTime startTime, TimeSpan duration) tuple1 = GetTimeRange();
-    (DateTime startTime, TimeSpan duration) tuple2 = GetTimeRange();
+```csharp
+(DateTime startTime, TimeSpan duration) tuple1 = GetTimeRange();
+(DateTime startTime, TimeSpan duration) tuple2 = GetTimeRange();
 
-    if (tuple1 == tuple2) ...
+if (tuple1 == tuple2) ...
+```
 
 rather than:
 
-    if (tuple1.startTime == tuple2.startTime && tuple1.duration == tuple2.duration) ...
+```csharp
+if (tuple1.startTime == tuple2.startTime && tuple1.duration == tuple2.duration) ...
+```
 
 ### AV2207: Don't hard-code strings that change based on the deployment
 
@@ -1138,11 +1275,15 @@ Configure the development environment to use **Warning Level 4** for the C# comp
 
 Rather than:
 
-    var query = from item in items where item.Length > 0 select item;
+```csharp
+var query = from item in items where item.Length > 0 select item;
+```
 
 prefer the use of extension methods from the `System.Linq` namespace:
 
-    var query = items.Where(item => item.Length > 0);
+```csharp
+var query = items.Where(item => item.Length > 0);
+```
 
 The second example is a bit less convoluted.
 
@@ -1150,18 +1291,24 @@ The second example is a bit less convoluted.
 
 Lambda expressions provide a more elegant alternative for anonymous methods. So instead of:
 
-    Customer customer = Array.Find(customers, delegate(Customer customer)
-    {
-        return customer.Name == "Tom";
-    });
+```csharp
+Customer customer = Array.Find(customers, delegate(Customer customer)
+{
+    return customer.Name == "Tom";
+});
+```
 
 use a lambda expression:
 
-    Customer customer = Array.Find(customers, customer => customer.Name == "Tom");
+```csharp
+Customer customer = Array.Find(customers, customer => customer.Name == "Tom");
+```
 
 Or even better:
 
-    var customer = customers.FirstOrDefault(customer => customer.Name == "Tom");
+```csharp
+var customer = customers.FirstOrDefault(customer => customer.Name == "Tom");
+```
 
 ### AV2230: Only use the `dynamic` keyword when talking to a dynamic object
 
@@ -1173,19 +1320,23 @@ Use it only for calling methods or members of a dynamically created instance cla
 
 Using the new C# 5.0 keywords results in code that can still be read sequentially and also improves maintainability a lot, even if you need to chain multiple asynchronous operations. For example, rather than defining your method like this:
 
-    public Task<Data> GetDataAsync()
-    {
-      return MyWebService.FetchDataAsync()
-        .ContinueWith(t => new Data(t.Result));
-    }
+```csharp
+public Task<Data> GetDataAsync()
+{
+    return MyWebService.FetchDataAsync()
+    .ContinueWith(t => new Data(t.Result));
+}
+```
 
 define it like this:
 
-    public async Task<Data> GetDataAsync()
-    {
-      string result = await MyWebService.FetchDataAsync();
-      return new Data(result);
-    }
+```csharp
+public async Task<Data> GetDataAsync()
+{
+    string result = await MyWebService.FetchDataAsync();
+    return new Data(result);
+}
+```
 
 **Tip:** Even if you need to target .NET Framework 4.0 you can use the `async` and `await` keywords. Simply install the [Async Targeting Pack](http://www.microsoft.com/en-us/download/details.aspx?id=29576).
 
@@ -1233,53 +1384,67 @@ Annotating a block of code or some work to be done using a *TODO* or similar com
 
 - Don't indent object/collection initializers and initialize each property on a new line, so use a format like this:
 
-        var dto = new ConsumerDto
-        {
-            Id = 123,
-            Name = "Microsoft",
-            PartnerShip = PartnerShip.Gold,
-            ShoppingCart =
-            {
-                ["VisualStudio"] = 1
-            }
-        };
+```csharp
+var dto = new ConsumerDto
+{
+    Id = 123,
+    Name = "Microsoft",
+    PartnerShip = PartnerShip.Gold,
+    ShoppingCart =
+    {
+        ["VisualStudio"] = 1
+    }
+};
+```
 
 - Don't indent lambda statement blocks and use a format like this:
 
-        methodThatTakesAnAction.Do(x =>
-        { 
-            // do something like this 
-        }
+```csharp
+methodThatTakesAnAction.Do(x =>
+{ 
+    // do something like this 
+}
+```
 
 - Keep expression-bodied-members on one line. Break long lines after the arrow sign, like this:
 
-        private string GetLongText =>
-            "ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC";
+```csharp
+private string GetLongText =>
+    "ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC";
+```
 
 - Put the entire LINQ statement on one line, or start each keyword at the same indentation, like this:
 
-        var query = from product in products where product.Price > 10 select product;
+```csharp
+var query = from product in products where product.Price > 10 select product;
+```
 
-      or
+    or
 
-        var query =  
-            from product in products  
-            where product.Price > 10  
-            select product;
+```csharp
+var query =  
+    from product in products  
+    where product.Price > 10  
+    select product;
+```
 
 - Start the LINQ statement with all the `from` expressions and don't interweave them with restrictions.
+
+- Remove redundant parentheses in expressions if they do not clarify precedence. Add parentheses in expressions to avoid non-obvious precedence. For example, in nested conditional expressions: `overruled || (enabled && active)`, bitwise and shift operations: `foo | (bar >> size)`.
 
 - Add an empty line between multi-line statements, between multi-line members, after the closing curly braces, between unrelated code blocks, and between the `using` statements of different root namespaces.
 
 ### DG2402: Order namespaces in alphabetic order
 
-    using AvivaSolutions.Business;
-    using AvivaSolutions.Standard;
-    using System;
-    using System.Collections.Generic;
-    using System.Xml;
-    using Telerik.WebControls;
-    using Telerik.Ajax;
+```csharp
+using AvivaSolutions.Business;
+using AvivaSolutions.Standard;
+using System;
+using System.Collections.Generic;
+using System.Xml;
+using Telerik.WebControls;
+using Telerik.Ajax;
+```
 
 Using static directives and using alias directives should be written below regular using directives.
 Always place these directives at the top of the file, before any namespace declarations (not inside them).
@@ -1350,7 +1515,7 @@ Some rules have been changed to match personal preferences. I renamed the rule c
 - AV1535: 1. Added exception for `case` with `return`. 2. Added note for `using`. (now DG1535)
 - AV1702: All private fields are now Camel (now DG1702)
 - AV2201: static usage also uses alias (now DG2201)
-- AV2400: 1. Added exception for auto-property newlines. 2. Removed parentheses-guideline for all binary expressions. (now DG2400)
+- AV2400: Added exception for auto-property newlines. (now DG2400)
 - AV2402: Order all namespaces alphabetically, not System first. (now DG2402)
 - AV2406: Ordered the default Resharper way. (now DG2406)
 
