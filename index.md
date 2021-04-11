@@ -22,7 +22,7 @@ Single page version of <https://csharpcodingguidelines.com/> .
   - [AV1110: Don't use mutually exclusive properties](#av1110-dont-use-mutually-exclusive-properties)
   - [AV1115: A property, method or local function should do only one thing](#av1115-a-property-method-or-local-function-should-do-only-one-thing)
   - [AV1125: Don't expose stateful objects through static members](#av1125-dont-expose-stateful-objects-through-static-members)
-  - [AV1130: Return an `IEnumerable<T>` or `ICollection<T>` instead of a concrete collection class](#av1130-return-an-ienumerablet-or-icollectiont-instead-of-a-concrete-collection-class)
+  - [AV1130: Return interfaces to unchangeable collections](#av1130-return-interfaces-to-unchangeable-collections)
   - [AV1135: Properties, arguments and return values representing strings, collections or tasks should never be `null`](#av1135-properties-arguments-and-return-values-representing-strings-collections-or-tasks-should-never-be-null)
   - [AV1137: Define parameters as specific as possible](#av1137-define-parameters-as-specific-as-possible)
   - [AV1140: Consider using domain-specific value types rather than primitives](#av1140-consider-using-domain-specific-value-types-rather-than-primitives)
@@ -46,7 +46,7 @@ Single page version of <https://csharpcodingguidelines.com/> .
   - [AV1507: Limit the contents of a source code file to one type](#av1507-limit-the-contents-of-a-source-code-file-to-one-type)
   - [AV1508: Name a source file to the logical function of the partial type](#av1508-name-a-source-file-to-the-logical-function-of-the-partial-type)
   - [AV1510: Use `using` statements instead of fully qualified type names](#av1510-use-using-statements-instead-of-fully-qualified-type-names)
-  - [AV1515: Don't use "magic" numbers](#av1515-dont-use-%22magic%22-numbers)
+  - [AV1515: Don't use "magic" numbers](#av1515-dont-use-magic-numbers)
   - [DG1520: Only use `var` when the type is obvious](#dg1520-only-use-var-when-the-type-is-obvious)
   - [AV1521: Declare and initialize variables as late as possible](#av1521-declare-and-initialize-variables-as-late-as-possible)
   - [AV1522: Assign each variable in a separate statement](#av1522-assign-each-variable-in-a-separate-statement)
@@ -88,7 +88,7 @@ Single page version of <https://csharpcodingguidelines.com/> .
   - [AV1725: Name namespaces using names, layers, verbs and features](#av1725-name-namespaces-using-names-layers-verbs-and-features)
   - [AV1735: Use a verb or verb phrase to name an event](#av1735-use-a-verb-or-verb-phrase-to-name-an-event)
   - [AV1737: Use `-ing` and `-ed` to express pre-events and post-events](#av1737-use--ing-and--ed-to-express-pre-events-and-post-events)
-  - [AV1738: Prefix an event handler with "On"](#av1738-prefix-an-event-handler-with-%22on%22)
+  - [AV1738: Prefix an event handler with "On"](#av1738-prefix-an-event-handler-with-on)
   - [AV1739: Use an underscore for irrelevant lambda parameters](#av1739-use-an-underscore-for-irrelevant-lambda-parameters)
   - [AV1745: Group extension methods in a class suffixed with Extensions](#av1745-group-extension-methods-in-a-class-suffixed-with-extensions)
   - [AV1755: Postfix asynchronous methods with `Async` or `TaskAsync`](#av1755-postfix-asynchronous-methods-with-async-or-taskasync)
@@ -99,7 +99,7 @@ Single page version of <https://csharpcodingguidelines.com/> .
   - [AV1830: Beware of mixing up `async`/`await` with `Task.Wait`](#av1830-beware-of-mixing-up-asyncawait-with-taskwait)
   - [AV1835: Beware of `async`/`await` deadlocks in single-threaded environments](#av1835-beware-of-asyncawait-deadlocks-in-single-threaded-environments)
 - [Framework Guidelines](#framework-guidelines)
-  - [DG2201: Use C# type aliases instead of the types from the `System` namespace](#dg2201-use-c-type-aliases-instead-of-the-types-from-the-system-namespace)
+  - [AV2201: Use C# type aliases instead of the types from the `System` namespace](#av2201-use-c-type-aliases-instead-of-the-types-from-the-system-namespace)
   - [AV2202: Prefer language syntax over explicit calls to underlying implementations](#av2202-prefer-language-syntax-over-explicit-calls-to-underlying-implementations)
   - [AV2207: Don't hard-code strings that change based on the deployment](#av2207-dont-hard-code-strings-that-change-based-on-the-deployment)
   - [AV2210: Build with the highest warning level](#av2210-build-with-the-highest-warning-level)
@@ -119,7 +119,7 @@ Single page version of <https://csharpcodingguidelines.com/> .
   - [DG2400: Use a common layout](#dg2400-use-a-common-layout)
   - [DG2402: Order namespaces in alphabetic order](#dg2402-order-namespaces-in-alphabetic-order)
   - [DG2406: Place members in a well-defined order](#dg2406-place-members-in-a-well-defined-order)
-  - [AV2407: Do not use `#region`](#av2407-do-not-use-region)
+  - [AV2407:  Do not use `#region`](#av2407--do-not-use-region)
   - [AV2410: Use expression-bodied members appropriately](#av2410-use-expression-bodied-members-appropriately)
 - [About this document](#about-this-document)
   - [Useful links](#useful-links)
@@ -299,11 +299,9 @@ A stateful object is an object that contains many properties and lots of behavio
 
 A classic example of this is the `HttpContext.Current` property, part of ASP.NET. Many see the `HttpContext` class as a source of a lot of ugly code. In fact, the testing guideline [Isolate the Ugly Stuff](http://codebetter.com/jeremymiller/2005/10/21/haacked-on-tdd-and-jeremys-first-rule-of-tdd/) often refers to this class.
 
-### AV1130: Return an `IEnumerable<T>` or `ICollection<T>` instead of a concrete collection class
+### AV1130: Return interfaces to unchangeable collections
 
-You generally don't want callers to be able to change an internal collection, so don't return arrays, lists or other collection classes directly. Instead, return an `IEnumerable<T>`, or, if the caller must be able to determine the count, an `ICollection<T>`.
-
-**Note:** If you're using .NET 4.5 or higher, you can also use `IReadOnlyCollection<T>`, `IReadOnlyList<T>` or `IReadOnlyDictionary<TKey, TValue>`.
+You generally don't want callers to be able to change an internal collection, so don't return arrays, lists or other collection classes directly. Instead, return an `IEnumerable<T>`, `IReadOnlyCollection<T>`, `IReadOnlyList<T>` or `IReadOnlyDictionary<TKey, TValue>`.
 
 **Exception:** Immutable collections such as `ImmutableArray<T>`, `ImmutableList<T>` and `ImmutableDictionary<TKey, TValue>` prevent modifications from the outside and are thus allowed.
 
@@ -992,26 +990,26 @@ All identifiers (such as types, type members, parameters and variables) should b
 
 ### DG1702: Use proper casing for language elements
 
-| Language element | Casing | Example |
-|:--------------------|:----------|:-----------|
-| Namespace                                            | Pascal                         | `System.Drawing`                                            |
-| Type parameter                                       | Pascal                         | `TView`                                                     |
-| Interface                                            | Pascal                         | `IBusinessService`                                          |
-| Class, struct                                        | Pascal                         | `AppDomain`                                                 |
-| Enum                                                 | Pascal                         | `ErrorLevel`                                                |
-| Enum member                                          | Pascal                         | `FatalError`                                                |
-| Resource key                                         | Pascal                         | `SaveButtonTooltipText`                                     |
-| Private field (incl. const / static readonly)        | Camel                          | `listItem`                                                  |
-| Non-private field (incl. const / static readonly)    | Pascal                         | `MainPanel`                                                 |
-| Property                                             | Pascal                         | `BackColor`                                                 |
-| Event                                                | Pascal                         | `Click`                                                     |
-| Method                                               | Pascal                         | `ToString`                                                  |
-| Local function                                       | Pascal                         | `FormatText`                                                |
-| Parameter                                            | Camel                          | `typeName`                                                  |
-| Tuple element names | Pascal | `(string First, string Last) name = ("John", "Doe");` <br/>`var name = (First: "John", Last: "Doe");` <br/>`(string First, string Last) GetName() => ("John", "Doe");` |
-| Variables declared using tuple syntax | Camel | `(string first, string last) = ("John", "Doe");` <br/>`var (first, last) = ("John", "Doe");` <br/> |
-|                                                      |                                | `var (first, last) = ("John", "Doe");`                      |
-| Local variable                                       | Camel                          | `listOfValues`                                              |
+| Language element                                  | Casing | Example                                                                                                                                                                |
+| :------------------------------------------------ | :----- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Namespace                                         | Pascal | `System.Drawing`                                                                                                                                                       |
+| Type parameter                                    | Pascal | `TView`                                                                                                                                                                |
+| Interface                                         | Pascal | `IBusinessService`                                                                                                                                                     |
+| Class, struct                                     | Pascal | `AppDomain`                                                                                                                                                            |
+| Enum                                              | Pascal | `ErrorLevel`                                                                                                                                                           |
+| Enum member                                       | Pascal | `FatalError`                                                                                                                                                           |
+| Resource key                                      | Pascal | `SaveButtonTooltipText`                                                                                                                                                |
+| Private field (incl. const / static readonly)     | Camel  | `listItem`                                                                                                                                                             |
+| Non-private field (incl. const / static readonly) | Pascal | `MainPanel`                                                                                                                                                            |
+| Property                                          | Pascal | `BackColor`                                                                                                                                                            |
+| Event                                             | Pascal | `Click`                                                                                                                                                                |
+| Method                                            | Pascal | `ToString`                                                                                                                                                             |
+| Local function                                    | Pascal | `FormatText`                                                                                                                                                           |
+| Parameter                                         | Camel  | `typeName`                                                                                                                                                             |
+| Tuple element names                               | Pascal | `(string First, string Last) name = ("John", "Doe");` <br/>`var name = (First: "John", Last: "Doe");` <br/>`(string First, string Last) GetName() => ("John", "Doe");` |
+| Variables declared using tuple syntax             | Camel  | `(string first, string last) = ("John", "Doe");` <br/>`var (first, last) = ("John", "Doe");` <br/>                                                                     |
+|                                                   |        | `var (first, last) = ("John", "Doe");`                                                                                                                                 |
+| Local variable                                    | Camel  | `listOfValues`                                                                                                                                                         |
 
 **Note:** in case of ambiguity, the rule higher in the table wins.
 
@@ -1137,6 +1135,8 @@ If you use a lambda expression (for instance, to subscribe to an event) and the 
 button.Click += (_, __) => HandleClick();
 ```
 
+**Note** If using C# 9 or higher, use a single underscore (discard) for all unused lambda parameters and variables.
+
 ### AV1745: Group extension methods in a class suffixed with Extensions
 
 If the name of an extension method conflicts with another member or extension method, you must prefix the call with the class name. Having them in a dedicated class with the `Extensions` suffix improves readability.
@@ -1192,9 +1192,11 @@ You end up with a deadlock. Why? Because the `Result` property getter will block
 
 ## Framework Guidelines
 
-### DG2201: Use C# type aliases instead of the types from the `System` namespace
+### AV2201: Use C# type aliases instead of the types from the `System` namespace
 
-For instance, use `object` instead of `Object`, `string` instead of `String`, and `int` instead of `Int32`. These aliases have been introduced to make the primitive types first class citizens of the C# language, so use them accordingly.
+For instance, use `object` instead of `Object`, `string` instead of `String`, and `int` instead of `Int32`. These aliases have been introduced to make the primitive types first class citizens of the C# language, so use them accordingly. When referring to static members of those types, use `int.Parse()` instead of `Int32.Parse()`.
+
+**Exception:** For interop with other languages, it is custom to use the [CLS-compliant name](https://docs.microsoft.com/en-us/dotnet/standard/common-type-system) in type and member signatures, e.g. `HexToInt32Converter`, `GetUInt16`.
 
 ### AV2202: Prefer language syntax over explicit calls to underlying implementations
 
@@ -1514,7 +1516,6 @@ Some rules have been changed to match personal preferences. I renamed the rule c
 - AV1520: Removed 'very' (now DG1520)
 - AV1535: 1. Added exception for `case` with `return`. 2. Added note for `using`. (now DG1535)
 - AV1702: All private fields are now Camel (now DG1702)
-- AV2201: static usage also uses alias (now DG2201)
 - AV2400: Added exception for auto-property newlines. (now DG2400)
 - AV2402: Order all namespaces alphabetically, not System first. (now DG2402)
 - AV2406: Ordered the default Resharper way. (now DG2406)
