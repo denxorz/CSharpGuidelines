@@ -47,7 +47,7 @@ Single page version of <https://csharpcodingguidelines.com/> .
   - [AV1508: Name a source file to the logical function of the partial type](#av1508-name-a-source-file-to-the-logical-function-of-the-partial-type)
   - [AV1510: Use `using` statements instead of fully qualified type names](#av1510-use-using-statements-instead-of-fully-qualified-type-names)
   - [AV1515: Don't use "magic" numbers](#av1515-dont-use-magic-numbers)
-  - [DG1520: Only use `var` when the type is evident](#dg1520-only-use-var-when-the-type-is-evident)
+  - [AV1520: Only use `var` when the type is evident](#av1520-only-use-var-when-the-type-is-evident)
   - [AV1521: Declare and initialize variables as late as possible](#av1521-declare-and-initialize-variables-as-late-as-possible)
   - [AV1522: Assign each variable in a separate statement](#av1522-assign-each-variable-in-a-separate-statement)
   - [AV1523: Favor object and collection initializers over separate statements](#av1523-favor-object-and-collection-initializers-over-separate-statements)
@@ -303,7 +303,7 @@ A classic example of this is the `HttpContext.Current` property, part of ASP.NET
 
 ### AV1130: Return interfaces to unchangeable collections
 
-You generally don't want callers to be able to change an internal collection, so don't return arrays, lists or other collection classes directly. Instead, return an `IEnumerable<T>`, `IAsyncEnumerable<T>`, `IReadOnlyCollection<T>`, `IReadOnlyList<T>`, `IReadOnlySet<T>` or `IReadOnlyDictionary<TKey, TValue>`.
+You generally don't want callers to be able to change an internal collection, so don't return arrays, lists or other collection classes directly. Instead, return an `IEnumerable<T>`, `IAsyncEnumerable<T>`, `IQueryable<T>`, `IReadOnlyCollection<T>`, `IReadOnlyList<T>`, `IReadOnlySet<T>` or `IReadOnlyDictionary<TKey, TValue>`.
 
 **Exception:** Immutable collections such as `ImmutableArray<T>`, `ImmutableList<T>` and `ImmutableDictionary<TKey, TValue>` prevent modifications from the outside and are thus allowed.
 
@@ -526,7 +526,7 @@ public class SomeSpecialContainer
 
 **Note:** An enumeration can often be used for certain types of symbolic constants.
 
-### DG1520: Only use `var` when the type is evident
+### AV1520: Only use `var` when the type is evident
 
 Use `var` for anonymous types (typically resulting from a LINQ query), or if the type is [evident](https://www.jetbrains.com/help/resharper/2021.3/Using_var_Keyword_in_Declarations.html#use-var-when-evident-details).
 Never use `var` for [built-in types](https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/built-in-types).
@@ -553,7 +553,7 @@ var summary = shoppingBasket.ToOrderSummary();
 // All other cases.
 IQueryable<Order> recentOrders = ApplyFilter(order => order.CreatedAt > DateTime.Now.AddDays(-30));
 LoggerMessage message = Compose(context);
-ReadOnlySpan<string> key = ExtractKeyFromPair("email=john.doe@mail.com");
+ReadOnlySpan<char> key = ExtractKeyFromPair("email=john.doe@mail.com");
 IDictionary<Category, Product> productsPerCategory = shoppingBasket.Products.ToDictionary(product => product.Category);
 ```
 
@@ -930,7 +930,7 @@ public virtual int IndexOf(string phrase, int startIndex = 0, int count = -1)
 }
 ```
 
-Since strings, lists and collections should never be `null` according to rule [AV1135](#av1135-properties-arguments-and-return-values-representing-strings-collections-or-tasks-should-never-be-null), if you have an optional parameter of these types with default value `null` then you must use overloaded methods instead.
+Since strings, collections and tasks should never be `null` according to rule [AV1135](#av1135-properties-arguments-and-return-values-representing-strings-collections-or-tasks-should-never-be-null), if you have an optional parameter of these types with default value `null` then you must use overloaded methods instead.
 
 Strings, unlike other reference types, can have non-null default values. So an optional string parameter may be used to replace overloads with the condition of having a non-null default value.
 
@@ -1228,7 +1228,7 @@ If you do need to execute a CPU bound operation, use `Task.Run` to offload the w
 Consider the following asynchronous method:
 
 ```csharp
-private async Task GetDataAsync()
+private async Task<string> GetDataAsync()
 {
     var result = await MyWebService.GetDataAsync();
     return result.ToString();
@@ -1591,7 +1591,6 @@ Some rules have been changed to match personal preferences. I renamed the rule c
 
 - AV1225: Removed
 - AV1230: Removed
-- AV1520: Removed 'very' (now DG1520)
 - AV1535: 1. Added exception for `case` with `return`. 2. Added note for `using`. (now DG1535)
 - AV1702: All private fields are now Camel (now DG1702)
 - AV2400: Added exception for auto-property newlines. (now DG2400)
