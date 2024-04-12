@@ -97,7 +97,8 @@ Single page version of <https://csharpcodingguidelines.com/> .
   - [AV1820: Only use `async` for low-intensive long-running activities](#av1820-only-use-async-for-low-intensive-long-running-activities)
   - [AV1825: Prefer `Task.Run` or `Task.Factory.StartNew` for CPU-intensive activities](#av1825-prefer-taskrun-or-taskfactorystartnew-for-cpu-intensive-activities)
   - [AV1830: Beware of mixing up `async`/`await` with `Task.Wait`](#av1830-beware-of-mixing-up-asyncawait-with-taskwait)
-  - [AV1835: Beware of `async`/`await` deadlocks in single-threaded environments](#av1835-beware-of-asyncawait-deadlocks-in-single-threaded-environments)
+  - [AV1835: Beware of `async`/`await` deadlocks in special environments (e.g. WPF)](#av1835-beware-of-asyncawait-deadlocks-in-special-environments-eg-wpf)
+  - [AV1840: Await `ValueTask` and `ValueTask<T>` directly and exactly once](#av1840-await-valuetask-and-valuetaskt-directly-and-exactly-once)
 - [Framework Guidelines](#framework-guidelines)
   - [AV2201: Use C# type aliases instead of the types from the `System` namespace](#av2201-use-c-type-aliases-instead-of-the-types-from-the-system-namespace)
   - [AV2202: Prefer language syntax over explicit calls to underlying implementations](#av2202-prefer-language-syntax-over-explicit-calls-to-underlying-implementations)
@@ -1165,7 +1166,7 @@ If you do need to execute a CPU bound operation, use `Task.Run` to offload the w
 
 `await` does not block the current thread but simply instructs the compiler to generate a state-machine. However, `Task.Wait` blocks the thread and may even cause deadlocks (see [AV1835](#av1835-beware-of-asyncawait-deadlocks-in-single-threaded-environments)).
 
-### AV1835: Beware of `async`/`await` deadlocks in single-threaded environments
+### AV1835: Beware of `async`/`await` deadlocks in special environments (e.g. WPF)
 
 Consider the following asynchronous method:
 
@@ -1177,18 +1178,35 @@ private async Task GetDataAsync()
 }
 ```
 
-Now when an ASP.NET MVC controller action does this:
+Now when a button event handler is implemented like this:
 
 ```csharp
-public ActionResult ActionAsync()
+public async void Button1_Click(object sender, RoutedEventArgs e)
 {
     var data = GetDataAsync().Result;
-
-    return View(data);  
+    textBox1.Text = data;
 }
 ```
 
-You end up with a deadlock. Why? Because the `Result` property getter will block until the `async` operation has completed, but since an `async` method _could_ automatically marshal the result back to the original thread (depending on the current `SynchronizationContext` or `TaskScheduler`) and ASP.NET uses a single-threaded synchronization context, they'll be waiting on each other. A similar problem can also happen on UWP, WPF or a Windows Store C#/XAML app. Read more about this [here](http://blogs.msdn.com/b/pfxteam/archive/2011/01/13/10115163.aspx).
+You will likely end up with a deadlock. Why? Because the `Result` property getter will block until the `async` operation has completed, but since an `async` method _could_ automatically marshal the result back to the original thread (depending on the current `SynchronizationContext` or `TaskScheduler`) and WPF uses a single-threaded synchronization context, they'll be waiting on each other. A similar problem can also happen on UWP, WinForms, classical ASP.NET (not ASP.NET Core) or a Windows Store C#/XAML app. Read more about this [here](http://blogs.msdn.com/b/pfxteam/archive/2011/01/13/10115163.aspx).
+
+### AV1840: Await `ValueTask` and `ValueTask<T>` directly and exactly once
+
+The consumption of the newer and performance related `ValueTask` and `ValueTask<T>` types is more restrictive than consuming `Task` or `Task<T>`. Starting with .NET Core 2.1 the `ValueTask<T>` is not only able to wrap the result `T` or a `Task<T>`, with this version it is also possible to wrap a `IValueTaskSource` / `IValueTaskSource<T>` which gives the developer extra support for reuse and pooling. This enhanced support might lead to unwanted side-effects, as the ValueTask-returning developer might reuse the underlying object after it got awaited. The safest way to consume a `ValueTask` / `ValueTask<T>` is to directly `await` it once, or call `.AsTask()` to get a `Task` / `Task<T>` to overcome these limitations.
+
+```csharp
+// OK / GOOD
+int bytesRead = await stream.ReadAsync(buffer, cancellationToken);
+
+// OK / GOOD
+int bytesRead = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+// OK / GOOD - Get task if you want to overcome the limitations exposed by ValueTask / ValueTask<T>
+Task<int> task = stream.ReadAsync(buffer, cancellationToken).AsTask();
+```
+
+Other usage patterns might still work (like saving the `ValueTask` / `ValueTask<T>` into a variable and awaiting later), but may lead to misuse eventually. Not awaiting a `ValueTask` / `ValueTask<T>` may also cause unwanted side-effects. Read more about `ValueTask` / `ValueTask<T>` and the correct usage [here](https://devblogs.microsoft.com/dotnet/understanding-the-whys-whats-and-whens-of-valuetask/).
+
 
 ## Framework Guidelines
 
