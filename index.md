@@ -10,7 +10,7 @@ Single page version of <https://csharpcodingguidelines.com/> .
   - [AV1005: Use an interface to decouple classes from each other](#av1005-use-an-interface-to-decouple-classes-from-each-other)
   - [AV1008: Avoid static classes](#av1008-avoid-static-classes)
   - [AV1010: Don't suppress compiler warnings using the `new` keyword](#av1010-dont-suppress-compiler-warnings-using-the-new-keyword)
-  - [AV1011: It should be possible to treat a derived object as if it were a base class object](#av1011-it-should-be-possible-to-treat-a-derived-object-as-if-it-were-a-base-class-object)
+  - [AV1011: It should be possible to treat a derived type as if it were a base type](#av1011-it-should-be-possible-to-treat-a-derived-type-as-if-it-were-a-base-type)
   - [AV1013: Don't refer to derived classes from the base class](#av1013-dont-refer-to-derived-classes-from-the-base-class)
   - [AV1014: Avoid exposing the other objects an object depends on](#av1014-avoid-exposing-the-other-objects-an-object-depends-on)
   - [AV1020: Avoid bidirectional dependencies](#av1020-avoid-bidirectional-dependencies)
@@ -47,7 +47,7 @@ Single page version of <https://csharpcodingguidelines.com/> .
   - [AV1508: Name a source file to the logical function of the partial type](#av1508-name-a-source-file-to-the-logical-function-of-the-partial-type)
   - [AV1510: Use `using` statements instead of fully qualified type names](#av1510-use-using-statements-instead-of-fully-qualified-type-names)
   - [AV1515: Don't use "magic" numbers](#av1515-dont-use-magic-numbers)
-  - [DG1520: Only use `var` when the type is obvious](#dg1520-only-use-var-when-the-type-is-obvious)
+  - [DG1520: Only use `var` when the type is evident](#dg1520-only-use-var-when-the-type-is-evident)
   - [AV1521: Declare and initialize variables as late as possible](#av1521-declare-and-initialize-variables-as-late-as-possible)
   - [AV1522: Assign each variable in a separate statement](#av1522-assign-each-variable-in-a-separate-statement)
   - [AV1523: Favor object and collection initializers over separate statements](#av1523-favor-object-and-collection-initializers-over-separate-statements)
@@ -59,6 +59,7 @@ Single page version of <https://csharpcodingguidelines.com/> .
   - [AV1537: Finish every `if`-`else`-`if` statement with an `else` clause](#av1537-finish-every-if-else-if-statement-with-an-else-clause)
   - [AV1540: Be reluctant with multiple `return` statements](#av1540-be-reluctant-with-multiple-return-statements)
   - [AV1545: Don't use an `if`-`else` construct instead of a simple (conditional) assignment](#av1545-dont-use-an-if-else-construct-instead-of-a-simple-conditional-assignment)
+  - [AV1546: Prefer interpolated strings over concatenation or `string.Format`](#av1546-prefer-interpolated-strings-over-concatenation-or-stringformat)
   - [AV1547: Encapsulate complex expressions in a property, method or local function](#av1547-encapsulate-complex-expressions-in-a-property-method-or-local-function)
   - [AV1551: Call the more overloaded method from other overloads](#av1551-call-the-more-overloaded-method-from-other-overloads)
   - [AV1553: Only use optional parameters to replace overloads](#av1553-only-use-optional-parameters-to-replace-overloads)
@@ -209,9 +210,9 @@ pocketBook.Print(); // Outputs "Printing PocketBook "
 
 It should not make a difference whether you call `Print()` through a reference to the base class or through the derived class.
 
-### AV1011: It should be possible to treat a derived object as if it were a base class object
+### AV1011: It should be possible to treat a derived type as if it were a base type
 
-In other words, you should be able to use a reference to an object of a derived class wherever a reference to its base class object is used without knowing the specific derived class. A very notorious example of a violation of this rule is throwing a `NotImplementedException` when overriding some of the base-class methods. A less subtle example is not honoring the behavior expected by the base class.  
+In other words, you should be able to pass an instance of a derived class wherever its base class is expected, without the callee knowing the derived class. A very notorious example of a violation of this rule is throwing a `NotImplementedException` when overriding methods from a base class. A less subtle example is not honoring the behavior expected by the base class.
   
 **Note:** This rule is also known as the Liskov Substitution Principle, one of the [S.O.L.I.D.](http://www.lostechies.com/blogs/chad_myers/archive/2008/03/07/pablo-s-topic-of-the-month-march-solid-principles.aspx) principles.
 
@@ -298,11 +299,11 @@ Similarly to rule [AV1000](#av1000-a-class-or-interface-should-have-a-single-pur
 
 A stateful object is an object that contains many properties and lots of behavior behind it. If you expose such an object through a static property or method of some other object, it will be very difficult to refactor or unit test a class that relies on such a stateful object. In general, introducing a construct like that is a great example of violating many of the guidelines of this chapter.
 
-A classic example of this is the `HttpContext.Current` property, part of ASP.NET. Many see the `HttpContext` class as a source of a lot of ugly code. In fact, the testing guideline [Isolate the Ugly Stuff](http://codebetter.com/jeremymiller/2005/10/21/haacked-on-tdd-and-jeremys-first-rule-of-tdd/) often refers to this class.
+A classic example of this is the `HttpContext.Current` property, part of ASP.NET. Many see the `HttpContext` class as a source of a lot of ugly code.
 
 ### AV1130: Return interfaces to unchangeable collections
 
-You generally don't want callers to be able to change an internal collection, so don't return arrays, lists or other collection classes directly. Instead, return an `IEnumerable<T>`, `IReadOnlyCollection<T>`, `IReadOnlyList<T>` or `IReadOnlyDictionary<TKey, TValue>`.
+You generally don't want callers to be able to change an internal collection, so don't return arrays, lists or other collection classes directly. Instead, return an `IEnumerable<T>`, `IAsyncEnumerable<T>`, `IReadOnlyCollection<T>`, `IReadOnlyList<T>`, `IReadOnlySet<T>` or `IReadOnlyDictionary<TKey, TValue>`.
 
 **Exception:** Immutable collections such as `ImmutableArray<T>`, `ImmutableList<T>` and `ImmutableDictionary<TKey, TValue>` prevent modifications from the outside and are thus allowed.
 
@@ -371,15 +372,17 @@ Instead of casting to and from the object type in generic types or methods, use 
 
 ```csharp
 class SomeClass  
-{}
+{
+
+}
 
 // Don't  
 class MyClass  
 {
     void SomeMethod(T t)  
     {  
-        object temp = t;  
-        SomeClass obj = (SomeClass) temp;  
+        object temp = t;
+        SomeClass obj = (SomeClass) temp;
     }  
 }
 
@@ -388,7 +391,7 @@ class MyClass where T : SomeClass
 {
     void SomeMethod(T t)  
     {  
-        SomeClass obj = t;  
+        SomeClass obj = t;
     }  
 }
 ```
@@ -407,7 +410,7 @@ public IEnumerable<GoldMember> GetGoldMemberCustomers()
         where customer.Balance > GoldMemberThresholdInEuro
         select new GoldMember(customer.Name, customer.Balance);
 
-    return query;  
+    return query;
 }
 ```
 
@@ -516,34 +519,43 @@ If the value of one constant depends on the value of another, attempt to make th
 ```csharp
 public class SomeSpecialContainer  
 {  
-    public const int MaxItems = 32;  
-    public const int HighWaterMark = 3 * MaxItems / 4; // at 75%  
+    public const int MaxItems = 32;
+    public const int HighWaterMark = 3 * MaxItems / 4;// at 75%  
 }
 ```
 
 **Note:** An enumeration can often be used for certain types of symbolic constants.
 
-### DG1520: Only use `var` when the type is obvious
+### DG1520: Only use `var` when the type is evident
 
-Only use `var` as the result of a LINQ query, or if the type is obvious from the same statement and using it would improve readability. So don't
-
-```csharp
-var item = 3;                              // what type? int? uint? float?
-var myfoo = MyFactoryMethod.Create("arg"); // Not obvious what base-class or
-                                           // interface to expect. Also
-                                           // difficult to refactor if you can't
-                                           // search for the class
-```
-
-Instead, use `var` like this:
+Use `var` for anonymous types (typically resulting from a LINQ query), or if the type is [evident](https://www.jetbrains.com/help/resharper/2021.3/Using_var_Keyword_in_Declarations.html#use-var-when-evident-details).
+Never use `var` for [built-in types](https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/built-in-types).
 
 ```csharp
-var query = from order in orders where order.Items > 10 and order.TotalValue > 1000;
-var repository = new RepositoryFactory.Get();
-var list = new ReadOnlyCollection();
-```
+// Projection into anonymous type.
+var largeOrders =
+    from order in dbContext.Orders
+    where order.Items.Count > 10 && order.TotalAmount > 1000
+    select new { order.Id, order.TotalAmount };
 
-In all of three above examples it is clear what type to expect. For a more detailed rationale about the advantages and disadvantages of using `var`, read Eric Lippert's [Uses and misuses of implicit typing](http://blogs.msdn.com/b/ericlippert/archive/2011/04/20/uses-and-misuses-of-implicit-typing.aspx).
+// Built-in types.
+bool isValid = true;
+string phoneNumber = "(unavailable)";
+uint pageSize = Math.Max(itemCount, MaxPageSize);  
+
+// Types are evident.
+var customer = new Customer();
+var invoice = Invoice.Create(customer.Id);
+var user = sessionCache.Resolve<User>("john.doe@mail.com");
+var subscribers = new List<Subscriber>();
+var summary = shoppingBasket.ToOrderSummary(); 
+
+// All other cases.
+IQueryable<Order> recentOrders = ApplyFilter(order => order.CreatedAt > DateTime.Now.AddDays(-30));
+LoggerMessage message = Compose(context);
+ReadOnlySpan<string> key = ExtractKeyFromPair("email=john.doe@mail.com");
+IDictionary<Category, Product> productsPerCategory = shoppingBasket.Products.ToDictionary(product => product.Category);
+```
 
 ### AV1521: Declare and initialize variables as late as possible
 
@@ -646,11 +658,11 @@ if (isActive)
 {  
     if (isVisible)  
     {  
-        Foo();  
+        Foo()
     }  
     else  
     {  
-        Bar();  
+        Bar();
     }  
 }
 ```
@@ -670,13 +682,13 @@ void Foo(string answer)
     {  
         case "no":  
         {
-            Console.WriteLine("You answered with No");  
+            Console.WriteLine("You answered with No");
             break;
         }  
 
         case "yes":
         {  
-            Console.WriteLine("You answered with Yes");  
+            Console.WriteLine("You answered with Yes");
             break;
         }
 
@@ -698,11 +710,11 @@ void Foo(string answer)
 {  
     if (answer == "no")  
     {  
-        Console.WriteLine("You answered with No");  
+        Console.WriteLine("You answered with No");
     }  
     else if (answer == "yes")  
     {  
-        Console.WriteLine("You answered with Yes");  
+        Console.WriteLine("You answered with Yes");
     }  
     else  
     {  
@@ -736,7 +748,7 @@ else
 write:
 
 ```csharp
-bool isPositive = (value > 0);
+bool isPositive = value > 0;
 ```
 
 Or instead of:
@@ -759,7 +771,7 @@ return classification;
 write:
 
 ```csharp
-return (value > 0) ? "positive" : "negative";
+return value > 0 ? "positive" : "negative";
 ```
 
 Or instead of:
@@ -788,6 +800,31 @@ return offset ?? -1;
 Or instead of:
 
 ```csharp
+private DateTime? firstJobStartedAt;
+
+public void RunJob()
+{
+    if (firstJobStartedAt == null)
+    {
+        firstJobStartedAt = DateTime.UtcNow;
+    }
+}
+```
+
+write:
+
+```csharp
+private DateTime? firstJobStartedAt;
+
+public void RunJob()
+{
+    firstJobStartedAt ??= DateTime.UtcNow;
+}
+```
+
+Or instead of:
+
+```csharp
 if (employee.Manager != null)
 {
     return employee.Manager.Name;
@@ -804,12 +841,30 @@ write:
 return employee.Manager?.Name;
 ```
 
+### AV1546: Prefer interpolated strings over concatenation or `string.Format`
+
+Since .NET 6, interpolated strings are optimized at compile-time, which inlines constants and reduces memory allocations due to boxing and string copying.
+
+```csharp
+// GOOD
+string result = $"Welcome, {firstName} {lastName}!";
+
+// BAD
+string result = string.Format("Welcome, {0} {1}!", firstName, lastName);
+
+// BAD
+string result = "Welcome, " + firstName + " " + lastName + "!";
+
+// BAD
+string result = string.Concat("Welcome, ", firstName, " ", lastName, "!");
+```
+
 ### AV1547: Encapsulate complex expressions in a property, method or local function
 
 Consider the following example:
 
 ```csharp
-if (member.HidesBaseClassMember && (member.NodeType != NodeType.InstanceInitializer))
+if (member.HidesBaseClassMember && member.NodeType != NodeType.InstanceInitializer)
 {
     // do something
 }
@@ -826,9 +881,8 @@ if (NonConstructorMemberUsesNewKeyword(member))
 
 private bool NonConstructorMemberUsesNewKeyword(Member member)  
 {  
-    return
-        member.HidesBaseClassMember &&
-        (member.NodeType != NodeType.InstanceInitializer);
+    return member.HidesBaseClassMember &&
+           member.NodeType != NodeType.InstanceInitializer;
 }
 ```
 
@@ -871,7 +925,7 @@ The only valid reason for using C# 4.0's optional parameters is to replace the e
 ```csharp
 public virtual int IndexOf(string phrase, int startIndex = 0, int count = -1)
 {
-    int length = (count == -1) ? (someText.Length - startIndex) : count;
+    int length = count == -1 ? someText.Length - startIndex : count;
     return someText.IndexOf(phrase, startIndex, length);
 }
 ```
@@ -892,7 +946,7 @@ When an interface method defines an optional parameter, its default value is dis
 
 When a concrete implementation of an interface method sets a default argument for a parameter, the default value is discarded during overload resolution if you call the concrete class through the interface reference.
 
-See [this series by Eric Lippert](http://blogs.msdn.com/b/ericlippert/archive/2011/05/09/optional-argument-corner-cases-part-one.aspx) for more details.
+See the series on optional argument corner cases by Eric Lippert (part [one](https://docs.microsoft.com/en-us/archive/blogs/ericlippert/optional-argument-corner-cases-part-one), [two](https://docs.microsoft.com/en-us/archive/blogs/ericlippert/optional-argument-corner-cases-part-two), [three](https://docs.microsoft.com/en-us/archive/blogs/ericlippert/optional-argument-corner-cases-part-three), [four](https://docs.microsoft.com/en-us/archive/blogs/ericlippert/optional-argument-corner-cases-part-four)) for more details.
 
 ### AV1555: Avoid using named arguments
 
@@ -928,7 +982,10 @@ bool success = int.TryParse(text, out int number);
 Consider the following method signature:
 
 ```csharp
-public Customer CreateCustomer(bool platinumLevel) {}
+public Customer CreateCustomer(bool platinumLevel) 
+{
+
+}
 ```
 
 On first sight this signature seems perfectly fine, but when calling this method you will lose this purpose completely:
@@ -1075,7 +1132,7 @@ class Employee
 Although technically correct, statements like the following can be confusing:
 
 ```csharp
-bool b001 = (lo == l0) ? (I1 == 11) : (lOl != 101);
+bool b001 = lo == l0 ? I1 == 11 : lOl != 101;
 ```
 
 ### AV1715: Properly name properties
@@ -1120,7 +1177,7 @@ For example, a close event that is raised before a window is closed would be cal
 
 Suppose you want to define events related to the deletion of an object. Avoid defining the `Deleting` and `Deleted` events as `BeginDelete` and `EndDelete`. Define those events as follows:
 
-- `Deleting`: Occurs just before the object is getting deleted
+- `Deleting`: Occurs just before the object is getting deleted.
 - `Delete`: Occurs when the object needs to be deleted by the event handler.
 - `Deleted`: Occurs when the object is already deleted.
 
@@ -1188,7 +1245,7 @@ public async void Button1_Click(object sender, RoutedEventArgs e)
 }
 ```
 
-You will likely end up with a deadlock. Why? Because the `Result` property getter will block until the `async` operation has completed, but since an `async` method _could_ automatically marshal the result back to the original thread (depending on the current `SynchronizationContext` or `TaskScheduler`) and WPF uses a single-threaded synchronization context, they'll be waiting on each other. A similar problem can also happen on UWP, WinForms, classical ASP.NET (not ASP.NET Core) or a Windows Store C#/XAML app. Read more about this [here](http://blogs.msdn.com/b/pfxteam/archive/2011/01/13/10115163.aspx).
+You will likely end up with a deadlock. Why? Because the `Result` property getter will block until the `async` operation has completed, but since an `async` method _could_ automatically marshal the result back to the original thread (depending on the current `SynchronizationContext` or `TaskScheduler`) and WPF uses a single-threaded synchronization context, they'll be waiting on each other. A similar problem can also happen on UWP, WinForms, classical ASP.NET (not ASP.NET Core) or a Windows Store C#/XAML app. Read more about this [here](https://devblogs.microsoft.com/pfxteam/await-and-ui-and-deadlocks-oh-my/).
 
 ### AV1840: Await `ValueTask` and `ValueTask<T>` directly and exactly once
 
@@ -1289,7 +1346,7 @@ Examples include connection strings, server addresses, etc. Use `Resources`, the
 
 ### AV2210: Build with the highest warning level
 
-Configure the development environment to use **Warning Level 4** for the C# compiler, and enable the option **Treat warnings as errors** . This allows the compiler to enforce the highest possible code quality.
+Configure the development environment to use the highest available warning level for the C# compiler, and enable the option **Treat warnings as errors**. This allows the compiler to enforce the highest possible code quality.
 
 ### AV2220: Avoid LINQ query syntax for simple expressions
 
@@ -1332,9 +1389,9 @@ var customer = customers.FirstOrDefault(customer => customer.Name == "Tom");
 
 ### AV2230: Only use the `dynamic` keyword when talking to a dynamic object
 
-The `dynamic` keyword has been introduced for working with dynamic languages. Using it introduces a serious performance bottleneck because the compiler has to generate some complex Reflection code.
+The `dynamic` keyword has been introduced for interop with languages where properties and methods can appear and disappear at runtime. Using it can introduce a serious performance bottleneck, because various compile-time checks (such as overload resolution) need to happen at runtime, again and again on each invocation. You'll get better performance using cached reflection lookups, `Activator.CreateInstance()` or pre-compiled expressions (see [here](https://andrewlock.net/benchmarking-4-reflection-methods-for-calling-a-constructor-in-dotnet/) for examples and benchmark results).
 
-Use it only for calling methods or members of a dynamically created instance class (using the `Activator`) as an alternative to `Type.GetProperty()` and `Type.GetMethod()`, or for working with COM Interop types.
+While using `dynamic` may improve code readability, try to avoid it in library code (especially in hot code paths). However, keep things in perspective: we're talking microseconds here, so perhaps you'll gain more by optimizing your SQL statements first.
 
 ### AV2235: Favor `async`/`await` over `Task` continuations
 
@@ -1344,7 +1401,7 @@ Using the new C# 5.0 keywords results in code that can still be read sequentiall
 public Task<Data> GetDataAsync()
 {
     return MyWebService.FetchDataAsync()
-    .ContinueWith(t => new Data(t.Result));
+      .ContinueWith(t => new Data(t.Result));
 }
 ```
 
@@ -1439,7 +1496,7 @@ private string GetLongText =>
 var query = from product in products where product.Price > 10 select product;
 ```
 
-    or
+or
 
 ```csharp
 var query =  
@@ -1510,18 +1567,21 @@ Another great all-encompassing trip through the many practices preached by proce
 - [Applying Domain-Driven Design and Patterns: With Examples in C# and .NET](http://www.amazon.com/Applying-Domain-Driven-Design-Patterns-Examples/dp/0321268202) (Jimmy Nilsson)  
 The book that started my interest for both Domain-Driven Design and Test-Driven Development. It's one of those books that I wished I had read a few years earlier. It would have spared me from many mistakes.
 
-- [Jeremy D. Miller's Blog](http://codebetter.com/jeremymiller/author/jeremymiller/)  
-Although he is not that active anymore, in the last couple of years he has written some excellent blog posts on Test-Driven Development, Design Patterns and design principles. I've learned a lot from his real-life and practical insights.
+- [Jeremy D. Miller's Blog](https://jeremydmiller.com/)
+Jeremy has written some excellent blog posts on Test-Driven Development, Design Patterns and design principles. I've learned a lot from his real-life and practical insights.
 
 - [LINQ Framework Design Guidelines](https://blogs.msdn.microsoft.com/mirceat/2008/03/12/linq-framework-design-guidelines/)  
 A set of rules and recommendations that you should adhere to when creating your own implementations of `IQueryable`.
+
+- [Guidance on Asynchronous Programming](https://github.com/davidfowl/AspNetCoreDiagnosticScenarios/blob/master/AsyncGuidance.md) (David Fowler)
+Best practices for `async`/`await` with examples of bad and good patterns of how to write asynchronous code.
 
 - [Best Practices for c# async/await](https://msdn.microsoft.com/en-us/magazine/jj991977.aspx)  
 Older (but still valid) overview of crucial practices to follow when adopting `async` and `await` in your own code base.
 
 ### What is this
 
-This document attempts to provide guidelines (or coding standards if you like) for all versions of C# up to and including 7.3 that are both valuable and pragmatic. Of course, if you create such a document you should practice what you preach. So rest assured, these guidelines are representative to what we at [Aviva Solutions](https://www.avivasolutions.nl) do in our day-to-day work. Notice that not all guidelines have a clear rationale. Some of them are simply choices we made at Aviva Solutions. In the end, it doesn't matter what choice you made, as long as you make one and apply it consistently.
+This document attempts to provide guidelines (or coding standards if you like) for all versions of C# up to and including v10 that are both valuable and pragmatic. Of course, if you create such a document you should practice what you preach. So rest assured, these guidelines are representative to what we at [Aviva Solutions](https://www.avivasolutions.nl) do in our day-to-day work. Notice that not all guidelines have a clear rationale. Some of them are simply choices we made at Aviva Solutions. In the end, it doesn't matter what choice you made, as long as you make one and apply it consistently.
 
 These guidelines are based on: <https://csharpcodingguidelines.com/> by Dennis Doomen of Aviva solutions. Most of the rules are kept as is, but some are updated.
 
@@ -1542,11 +1602,11 @@ Some rules have been changed to match personal preferences. I renamed the rule c
 
 Although some might see coding guidelines as undesired overhead or something that limits creativity, this approach has already proven its value for many years. This is because not every developer:
 
-- is aware that code is generally read 10 times more than it is changed;
-- is aware of the potential pitfalls of certain constructs in C#;
-- is up to speed on certain conventions when using the .NET Framework such as `IDisposable`, `async`/`await`, or the deferred execution nature of LINQ;
-- is aware of the impact of using (or neglecting to use) particular solutions on aspects like security, performance, multi-language support, etc;
-- realizes that not every developer is as capable, skilled or experienced to understand elegant, but potentially very abstract solutions;
+- is aware that code is generally read 10 times more than it is changed.
+- is aware of the potential pitfalls of certain constructs in C#.
+- is up to speed on certain conventions when using the .NET Framework such as `IDisposable`, `async`/`await`, or the deferred execution nature of LINQ.
+- is aware of the impact of using (or neglecting to use) particular solutions on aspects like security, performance, multi-language support, etc.
+- realizes that not every developer is as capable, skilled or experienced to understand elegant, but potentially very abstract solutions.
 
 ### Basic principles
 
@@ -1570,7 +1630,7 @@ Regardless of the elegance of someone's solution, if it's too complex for the or
 - Include the most critical coding guidelines on your [Project Checklist](https://www.continuousimprover.com/2010/03/alm-practices-5-checklists.html) and verify the remainder as part of your [Peer Review](https://www.continuousimprover.com/2010/02/tfs-development-practices-part-2-peer.html).
 - Jetbrain's [ReSharper](http://www.jetbrains.com/resharper/) and their fully fledged Visual Studio replacement [Rider](https://www.jetbrains.com/rider/), has an intelligent code inspection engine that, with some configuration, already supports many aspects of the Coding Guidelines. It automatically highlights any code that does not match the rules for naming members (e.g. Pascal or Camel casing), detects dead code, and many other things. One click of the mouse button (or the corresponding keyboard shortcut) is usually enough to fix it.
 - ReSharper also has a File Structure window that displays an overview of the members of your class or interface, and allows you to easily rearrange them using a simple drag-and-drop action.
-- [CSharpGuidelinesAnalyzer](https://github.com/bkoelman/CSharpGuidelinesAnalyzer) verifies over 40 of our guidelines, while typing code in Visual Studio 2017 and during CI builds. An updated Resharper settings file is included.
+- [CSharpGuidelinesAnalyzer](https://github.com/bkoelman/CSharpGuidelinesAnalyzer) verifies over 40 of our guidelines, while typing code in Visual Studio 2017-2022 and during CI builds. An updated Resharper settings file is included.
 
 ### Why did Dennis Doomen create it
 
